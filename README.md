@@ -7,6 +7,21 @@
 已默认开启 databind ,mvvm
 
 内嵌多套工具类。 
+```groovy
+
+allprojects {
+		repositories {
+			maven { url 'https://jitpack.io' }
+		}
+	}
+```
+
+```groovy
+
+dependencies {
+	        compile 'com.github.qssq:QuickDevelopFrame:v1.0'
+	}
+```
 
 ```
     public class MyApp extends SuperAppContext {
