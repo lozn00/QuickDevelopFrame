@@ -1,0 +1,76 @@
+<!--
+  ~
+  ~                     .::::.
+  ~                   .::::::::.
+  ~                  :::::::::::  by qssq666@foxmail.com
+  ~              ..:::::::::::'
+  ~            '::::::::::::'
+  ~              .::::::::::
+  ~         '::::::::::::::..
+  ~              ..::::::::::::.
+  ~            ``::::::::::::::::
+  ~             ::::``:::::::::'        .:::.
+  ~            ::::'   ':::::'       .::::::::.
+  ~          .::::'      ::::     .:::::::'::::.
+  ~         .:::'       :::::  .:::::::::' ':::::.
+  ~        .::'        :::::.:::::::::'      ':::::.
+  ~       .::'         ::::::::::::::'         ``::::.
+  ~   ...:::           ::::::::::::'              ``::.
+  ~  ```` ':.          ':::::::::'                  ::::..
+  ~                     '.:::::'                    ':'````..
+  ~
+  -->
+
+<resources>
+    <style name="AppThemeX" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:fitsSystemWindows">true</item>
+    </style>
+
+
+    <style name="AppThemeStatusBarWhiteStatusFontColorBlack" parent="AppThemeX">
+        <item name="android:fitsSystemWindows">true</item>
+        <item name="android:statusBarColor">@color/colorWhite</item>
+    </style>
+
+    <style name="AppThemeXNoFixWindow" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Customize your theme here. -->
+        <!--You need to use a Theme.AppCompat theme (or descendant) with the design library 解决方法windowActionBarfalse. windowNoTitle true-->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="android:windowNoTitle">true</item>
+        <!--colorPrimaryDark状态栏颜色-->
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="android:windowBackground">@color/windowBackground</item>
+
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="colorControlNormal">@color/colorAccentNormal</item>
+        <item name="windowNoTitle">true</item>
+        <item name="windowActionBar">true</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:textColorTertiary">@color/colorThemeBlack</item>
+
+
+        <item name="android:statusBarColor">@color/statusBarColor</item>
+    </style>
+
+
+    <!--http://www.jianshu.com/p/3e73c372b7ce-->
+
+    <style name="AppThemeStatusBarTruans" parent="AppThemeX">
+
+        <item name="android:fitsSystemWindows">false</item>
+        <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+
+    </style>
+
+
+    <style name="AppThemeStatusBarTruansWhiteStatusFontColor" parent="AppThemeStatusBarTruans">
+        <!--<item name="android:windowLightStatusBar">fals需要代码适配</item>-->
+    </style>
+
+    <style name="AppThemeStatusBarTruansBlackStatusFontColor" parent="AppThemeStatusBarTruans">
+        <!--<item name="android:windowLightStatusBar">true</item>-->
+    </style>
+
+</resources>

@@ -1,0 +1,36 @@
+<!--
+  ~
+  ~                     .::::.
+  ~                   .::::::::.
+  ~                  :::::::::::  by qssq666@foxmail.com
+  ~              ..:::::::::::'
+  ~            '::::::::::::'
+  ~              .::::::::::
+  ~         '::::::::::::::..
+  ~              ..::::::::::::.
+  ~            ``::::::::::::::::
+  ~             ::::``:::::::::'        .:::.
+  ~            ::::'   ':::::'       .::::::::.
+  ~          .::::'      ::::     .:::::::'::::.
+  ~         .:::'       :::::  .:::::::::' ':::::.
+  ~        .::'        :::::.:::::::::'      ':::::.
+  ~       .::'         ::::::::::::::'         ``::::.
+  ~   ...:::           ::::::::::::'              ``::.
+  ~  ```` ':.          ':::::::::'                  ::::..
+  ~                     '.:::::'                    ':'````..
+  ~
+  -->
+
+<resources>
+
+    <style name="AppThemeStatusBarTruans" parent="AppThemeX">
+
+        <item name="android:fitsSystemWindows">false</item>
+        <item name="android:windowTranslucentStatus">true</item>
+    </style>
+
+
+    <style name="AppThemeStatusBarWhiteStatusFontColorBlack" parent="AppThemeX">
+        <item name="android:fitsSystemWindows">true</item>
+    </style>
+</resources>

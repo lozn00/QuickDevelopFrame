@@ -1,0 +1,100 @@
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowFullscreen">true</item>
+    </style>
+
+    <style name="FullScreenTheme" parent="AppThemeX">
+        <item name="android:windowFullscreen">true</item>
+    </style>
+
+
+
+    <!-- Base application theme. -->
+    <style name="AppThemeX" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:fitsSystemWindows">true</item>
+    </style>
+
+
+    <style name="AppThemeXNoFixWindow" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Customize your theme here. -->
+        <!--You need to use a Theme.AppCompat theme (or descendant) with the design library 解决方法windowActionBarfalse. windowNoTitle true-->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="android:windowNoTitle">true</item>
+        <!--colorPrimaryDark状态栏颜色-->
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="android:windowBackground">@color/windowBackground</item>
+
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:fitsSystemWindows">true</item>
+        <item name="colorControlNormal">@color/colorAccentNormal</item>
+        <item name="windowNoTitle">true</item>
+        <item name="windowActionBar">true</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:textColorTertiary">@color/colorThemeBlack</item>
+    </style>
+
+    <style name="dialog_transparent">
+        <item name="android:windowFrame">@null</item><!--边框-->
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowIsTranslucent">false</item><!--半透明-->
+        <item name="android:windowBackground">@android:color/transparent</item><!--这里可以设置透明背景-->
+        <item name="android:windowIsFloating">true
+        </item><!-- 浮窗显示为妙 显示在activity智商 不过设不设置貌似没影响 会导致无法patch_parent  false则包裹。-->
+        <item name="android:backgroundDimEnabled">true</item><!-- 模糊效果 不过设不设置貌似没影响 -->
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
+
+    <style name="dialog_bottom_show" parent="dialog_transparent">
+        <item name="android:windowIsFloating">false
+        </item><!-- 浮窗显示为妙 显示在activity之上不过设不设置貌似没影响 会导致无法patch_parent-->
+        <item name="android:windowEnterAnimation">@anim/slide_out_to_top</item>
+        <item name="android:windowExitAnimation">@anim/slide_out_to_bottom</item>
+
+    </style>
+
+
+    <style name="BottompSelectAnimationShowQuickly">
+        <item name="android:windowEnterAnimation">@anim/slide_in_from_bottom</item>
+        <item name="android:windowExitAnimation">@anim/slide_out_to_bottom</item>
+    </style>
+
+    <style name="radioBtnStyleGuide">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:background">@android:color/transparent</item>
+        <item name="android:button">@null</item>
+        <item name="android:gravity">center_horizontal|center_vertical</item>
+        <item name="android:textColor">@color/color_btn_selector</item>
+        <item name="android:layout_margin">5dp</item>
+
+    </style>
+    <!--daohanglan to透明导航栏uming-->
+
+    <style name="AppThemeStatusBarTruans" parent="AppThemeX">
+        <item name="android:fitsSystemWindows">false</item>
+        <!--<item name="android:windowTranslucentStatus">true</item> v19-->
+
+    </style>
+
+    <style name="AppThemeStatusBarTruansWhiteStatusFontColor" parent="AppThemeStatusBarTruans">
+        <!--<item name="android:windowLightStatusBar">fals需要代码适配</item>-->
+    </style>
+
+    <style name="AppThemeStatusBarTruansBlackStatusFontColor" parent="AppThemeStatusBarTruans">
+        <!--<item name="android:windowLightStatusBar">true</item>-->
+    </style>
+
+    <!-- 继承的主题改掉 noTitle true
+    pCompat does not support the current theme features: { windowActionBar: false, windowActionBarOverlay: false, android:windowIsFloating: false, windowActionModeOverlay: false, windowNoTitle: false }-->
+
+</resources>

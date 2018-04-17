@@ -1,0 +1,60 @@
+<resources>
+
+
+    <!-- Base application theme. -->
+    <style name="AppThemeX" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:fitsSystemWindows">true</item>
+    </style>
+
+
+    <style name="AppThemeXNoFixWindow" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Customize your theme here. -->
+        <!--You need to use a Theme.AppCompat theme (or descendant) with the design library 解决方法windowActionBarfalse. windowNoTitle true-->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="android:windowNoTitle">true</item>
+        <!--colorPrimaryDark状态栏颜色-->
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="android:windowBackground">@color/windowBackground</item>
+
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="colorControlNormal">@color/colorAccentNormal</item>
+        <item name="windowNoTitle">true</item>
+        <item name="windowActionBar">true</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:textColorTertiary">@color/colorThemeBlack</item>
+
+        <!--21多的属性-->
+        <item name="android:statusBarColor">@color/statusBarColor</item>
+        <item name="android:windowLightStatusBar">true</item>
+
+
+        <!--     <item name="android:windowTranslucentStatus">true</item>    &lt;!&ndash;状态栏为透明,如果设置为false，则没有黑色条盖住，见下图对比&ndash;&gt;
+             <item name="android:windowTranslucentNavigation">true</item> &lt;!&ndash;导航栏为透明&ndash;&gt;-->
+
+    </style>
+
+    <style name="AppThemeStatusBarTruans" parent="AppThemeX">
+
+        <item name="android:fitsSystemWindows">false</item>
+        <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+    </style>
+
+
+    <style name="AppThemeStatusBarTruansWhiteStatusFontColor" parent="AppThemeStatusBarTruans">
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
+    <style name="AppThemeStatusBarTruansBlackStatusFontColor" parent="AppThemeStatusBarTruans">
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+
+    <style name="AppThemeStatusBarWhiteStatusFontColorBlack" parent="AppThemeX">
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:fitsSystemWindows">true</item>
+        <item name="android:statusBarColor">@color/colorWhite</item>
+    </style>
+
+
+</resources>

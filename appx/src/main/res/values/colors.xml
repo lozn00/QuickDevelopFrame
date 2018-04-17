@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+    <color name="list_divider_color">#DADADA</color>
+    <color name="statusBarColor">@color/colorWhite</color>
+    <color name="colorWhite">#ffffff</color>
+    <color name="colorThemeBlack">#000000</color>
+    <color name="colorPrimary">@android:color/black</color>
+    <!--状态栏颜色 colorPrimaryDark-->
+    <color name="colorPrimaryDark">@color/colorWhite</color>
+    <color name="colorAccent">#FF4081</color>
+    <color name="colorYellow1">#fac816</color>
+    <color name="colorYellow">#ffae00</color>
+    <color name="transparent">#00000000</color>
+
+    <color name="colorThemeColor">@color/colorYellow</color>
+    <color name="windowBackground">@color/colorWhite</color>
+    <color name="colorAccentNormal">@color/colorThemeBlack</color>
+    <color name="colorThemeGray">#979797</color>
+    <color name="itemLineColor">#F0F0F0</color>
+    <color name="fontColor">#ffffff</color>
+</resources>

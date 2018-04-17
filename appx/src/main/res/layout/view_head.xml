@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/view_head"
+    android:layout_width="match_parent"
+    android:layout_height="?attr/actionBarSize"
+    android:background="@android:color/white"
+    android:paddingBottom="5dp"
+    android:paddingTop="5dp">
+
+    <TextView
+        android:id="@+id/view_head_left"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:layout_marginLeft="10dp" />
+
+    <TextView
+        android:id="@+id/view_head_center"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:ellipsize="end"
+        android:gravity="center"
+
+        android:maxHeight="40dp"
+        android:maxWidth="200dp"
+        android:padding="5dp"
+        android:maxLength="15"
+        android:singleLine="true"
+        android:text="@string/app_name"
+        android:textAppearance="@style/TextAppearance.AppCompat.Widget.ActionBar.Title" />
+
+    <TextView
+
+        android:id="@+id/view_head_right"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:layout_marginRight="15dp"
+        android:layout_toLeftOf="@+id/view_head_center"
+        android:visibility="gone" />
+
+
+</RelativeLayout>

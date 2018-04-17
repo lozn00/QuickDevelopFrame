@@ -1,0 +1,20 @@
+<resources>
+    <!-- Default screen margins, per the Android Design guidelines. -->
+    <dimen name="activity_horizontal_margin">16dp</dimen>
+    <dimen name="activity_vertical_margin">16dp</dimen>
+    <dimen name="shape_shadow_size_small">2dp</dimen>
+    <dimen name="shape_shadow_size">5dp</dimen>
+    <dimen name="shape_shadow_radius">10dp</dimen>
+    <dimen name="shape_shadow_radius_small">5dp</dimen>
+    <dimen name="shape_shadow_radius_big">15dp</dimen>
+    <dimen name="shape_shadow_size_big">30dp</dimen>
+    <dimen name="shape_shadow_elevation">4dp</dimen>
+    <dimen name="shape_shadow_elevationx">5dp</dimen>
+
+    <dimen name="shape_shadow_elevation_big">8dp</dimen>
+    <dimen name="shape_shadow_elevation_bigx">10dp</dimen>
+
+    <dimen name="shape_shadow_elevation_small">2dp</dimen>
+    <dimen name="shape_shadow_elevation_smallx">4dp</dimen>
+    <dimen name="theme_margin_distance">10dp</dimen>
+</resources>

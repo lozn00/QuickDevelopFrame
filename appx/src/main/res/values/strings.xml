@@ -1,0 +1,17 @@
+<resources>
+    <string name="loading">加载中</string>
+    <string name="pleasewait">请稍候</string>
+    <string name="data_load_fail_new_error">数据加载失败,网络错误</string>
+    <string name="default_number">10000</string>
+    <string name="default_time">17:30</string>
+    <string name="default_date">2017-11-8</string>
+    <string name="tv_more">…</string>
+    <string name="data_load_fail_is_empty" translatable="false">数据为空,请稍候再试</string>
+    <string name="server_data_parse_error">服务器数据解析错误 %s</string>
+    <string name="not_more_data">没有更多数据了</string>
+    <string name="dialog_title">温馨提示</string>
+    <string name="dialog_ok">确认</string>
+    <string name="reaload">重新加载</string>
+
+    <string name="net_error">网络错误</string>
+</resources>
