@@ -26,6 +26,9 @@ public class SuperFragment extends Fragment {
 //        Log.i(TAG, "onCreate->" + this.getClass().hashCode());
 
     }
+    protected Fragment getFragment(){
+        return this;
+    }
 
     @Override
     public void onStart() {

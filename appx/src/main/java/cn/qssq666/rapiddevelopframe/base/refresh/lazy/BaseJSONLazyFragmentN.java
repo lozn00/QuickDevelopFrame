@@ -1,14 +1,13 @@
 package cn.qssq666.rapiddevelopframe.base.refresh.lazy;
 
+import android.os.Bundle;
 import android.support.v7.widget.RecyclerView;
-import android.view.LayoutInflater;
-import android.view.ViewGroup;
 
 import com.scwang.smartrefresh.layout.SmartRefreshLayout;
 
 import java.util.List;
 
-import cn.qssq666.rapiddevelopframe.base.fragment.LazyFragment;
+import cn.qssq666.rapiddevelopframe.base.fragment.BaseLazyLoadFragmentFromLayout;
 import cn.qssq666.rapiddevelopframe.base.refresh.BaseJSONRefreshLogicI;
 import cn.qssq666.rapiddevelopframe.base.refresh.JSONRefreshRefreshWrap;
 import cn.qssq666.rapiddevelopframe.interfaces.AdapterI;
@@ -19,7 +18,8 @@ import cn.qssq666.rapiddevelopframe.interfaces.AdapterI;
  * 逻辑好乱 一部分代码是控制wrap ，一部分是提供给包裹。
  */
 
-public abstract class BaseJSONLazyFragmentN<ADAPTER extends RecyclerView.Adapter> extends LazyFragment implements BaseJSONRefreshLogicI<ADAPTER> {
+public abstract class BaseJSONLazyFragmentN<ADAPTER extends RecyclerView.Adapter> extends BaseLazyLoadFragmentFromLayout implements BaseJSONRefreshLogicI<ADAPTER> {
+//public abstract class BaseJSONLazyFragmentN<ADAPTER extends RecyclerView.Adapter> extends LazyFragment implements BaseJSONRefreshLogicI<ADAPTER> {
 
     public JSONRefreshRefreshWrap<ADAPTER> getRefreshWrap() {
         return refreshWrap;
@@ -28,7 +28,7 @@ public abstract class BaseJSONLazyFragmentN<ADAPTER extends RecyclerView.Adapter
     private JSONRefreshRefreshWrap<ADAPTER> refreshWrap;
 
     @Override
-    public void init(LayoutInflater inflater, ViewGroup container) {
+    public void init(Bundle bundle){
         refreshWrap = new JSONRefreshRefreshWrap<ADAPTER>() {
             @Override
             protected List parseJsonResult(String json) {

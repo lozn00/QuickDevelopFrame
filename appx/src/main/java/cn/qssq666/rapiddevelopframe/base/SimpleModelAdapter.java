@@ -6,6 +6,7 @@ import android.view.LayoutInflater;
 import android.view.ViewGroup;
 
 import cn.qssq666.rapiddevelopframe.base.recyclerview.BaseRecyclervdapter;
+import cn.qssq666.rapiddevelopframe.viewholder.GenericDataBindViewHolder;
 
 
 /**

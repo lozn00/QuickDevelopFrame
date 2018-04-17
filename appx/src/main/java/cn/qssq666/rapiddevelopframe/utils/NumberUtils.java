@@ -77,6 +77,13 @@ public class NumberUtils {
      * @param number
      * @return
      */
+    public static String numberShortHand(long number) {
+        return numberShortHand("" + number);
+    }
+    public static String valueOf(Object number) {
+        return numberShortHand("" + number);
+    }
+
     public static String numberShortHand(String number) {
         if (TextUtils.isEmpty(number)) {
             return number;

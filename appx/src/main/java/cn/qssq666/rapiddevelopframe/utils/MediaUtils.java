@@ -1,9 +1,14 @@
 package cn.qssq666.rapiddevelopframe.utils;
 
+import android.content.ContentValues;
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.media.MediaMetadataRetriever;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Environment;
 import android.os.StatFs;
+import android.provider.MediaStore;
 import android.util.Log;
 
 import java.io.File;
@@ -18,6 +23,77 @@ import cn.qssq666.rapiddevelopframe.global.SuperAppContext;
  * Created by luozheng on 16/1/27.
  */
 public class MediaUtils {
+
+    public static void insertVideoToMediaStore(Context context, String filePath, long dateTaken, long duration) {
+        insertVideoToMediaStore(context, filePath, dateTaken, 0, 0, duration);
+    }
+
+    private static boolean isSystemDcim(String path) {
+        return path.toLowerCase().contains("dcim") || path.toLowerCase().contains("camera");
+    }
+
+    private static String getPhotoMimeType(String path) {
+        String toLowerCase = path.toLowerCase();
+        return (toLowerCase.endsWith("jpg") || toLowerCase.endsWith("jpeg")) ? "image/jpeg" : toLowerCase.endsWith("png") ? "image/png" : toLowerCase.endsWith("gif") ? "image/gif" : "image/jpeg";
+    }
+
+    public static void insertVideoToMediaStore(Context context, String filePath, long createTime, int width, int height, long duration) {
+        if (new File(filePath).exists()) {
+            createTime = getTimeWrap(createTime);
+            ContentValues initCommonContentValues = initCommonContentValues(filePath, createTime);
+            initCommonContentValues.put("datetaken", Long.valueOf(createTime));
+            if (duration > 0) {
+                initCommonContentValues.put("duration", Long.valueOf(duration));
+            }
+            if (Build.VERSION.SDK_INT > 16) {
+                if (width > 0) {
+                    initCommonContentValues.put("width", Integer.valueOf(width));
+                }
+                if (height > 0) {
+                    initCommonContentValues.put("height", Integer.valueOf(height));
+                }
+            }
+            initCommonContentValues.put("mime_type", getVideoMimeType(filePath));
+            Uri insert = context.getContentResolver().insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, initCommonContentValues);
+            Prt.w(TAG, "INSERT VIDEO:" + insert);
+        }
+    }
+    private static String getVideoMimeType(String path) {
+        String toLowerCase = path.toLowerCase();
+        return (toLowerCase.endsWith("mp4") || toLowerCase.endsWith("mpeg4")) ? "video/mp4" : toLowerCase.endsWith("3gp") ? "video/3gp" : "video/mp4";
+    }
+    private static long getTimeWrap(long time) {
+        return time <= 0 ? System.currentTimeMillis() : time;
+    }
+    private static ContentValues initCommonContentValues(String filePath, long time) {
+        ContentValues contentValues = new ContentValues();
+        File file = new File(filePath);
+        long timeWrap = getTimeWrap(time);
+        contentValues.put("title", file.getName());
+        contentValues.put("_display_name", file.getName());
+        contentValues.put("date_modified", Long.valueOf(timeWrap));
+        contentValues.put("date_added", Long.valueOf(timeWrap));
+        contentValues.put("_data", file.getAbsolutePath());
+        contentValues.put("_size", Long.valueOf(file.length()));
+        return contentValues;
+    }
+
+    public static File getVideoPath() {
+        return getMeimiPath("videos");
+    }
+    public static File getTempCacheMusicFileName() {
+        return new File(getCachePath(), getMusicFileName());
+    }
+
+
+    public static String getMusicFileName() {
+        return productFileName(".mp3");
+    }
+
+    public static File getTempConfirmedCacheFileName(String childDirOrPic) {
+        return new File(getCachePath(), childDirOrPic);
+    }
+
     private static final String TAG = "MediaUtils";
 
     /*

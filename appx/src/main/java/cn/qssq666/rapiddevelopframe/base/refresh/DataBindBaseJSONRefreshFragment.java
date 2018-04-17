@@ -32,6 +32,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import cn.qssq666.rapiddevelopframe.utils.AppThemeUtilsX;
+
 /**
  * Created by 情随事迁(qssq666@foxmail.com) on 2017/2/14.
  */
@@ -51,4 +53,7 @@ public abstract class DataBindBaseJSONRefreshFragment<ADAPTER extends RecyclerVi
         binding = DataBindingUtil.inflate(inflater, getLayoutID(), container, false);
         return binding.getRoot();
     }
+
+
+
 }

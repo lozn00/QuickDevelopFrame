@@ -40,6 +40,13 @@ public abstract class BaseJSONRefreshActivityN<ADAPTER extends RecyclerView.Adap
             }
 
 
+            public  String getInterceptEmptyDataTip(){
+                return BaseJSONRefreshActivityN.this.getInterceptEmptyDataTip();
+            }
+            public boolean isInterceptEmptyData(){
+                return BaseJSONRefreshActivityN.this.isInterceptEmptyData();
+            }
+
 
             @Override
             public void onParseSucc(List list) {
@@ -97,7 +104,7 @@ public abstract class BaseJSONRefreshActivityN<ADAPTER extends RecyclerView.Adap
     }
 
     protected boolean needEmptyView() {
-        return false;
+        return true;
     }
 
     /**
@@ -107,7 +114,6 @@ public abstract class BaseJSONRefreshActivityN<ADAPTER extends RecyclerView.Adap
     protected void onParseSucc(List list) {
 
     }
-
 
 
     @Override
@@ -187,5 +193,13 @@ public abstract class BaseJSONRefreshActivityN<ADAPTER extends RecyclerView.Adap
     @Override
     public AdapterI getRecyclervdapter() {
         return refreshWrap.getRecyclervdapter();
+    }
+
+    protected boolean isInterceptEmptyData() {
+        return false;
+    }
+
+    protected String getInterceptEmptyDataTip() {
+        return "data is empty";
     }
 }

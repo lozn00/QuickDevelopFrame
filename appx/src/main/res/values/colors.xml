@@ -19,4 +19,7 @@
     <color name="colorThemeGray">#979797</color>
     <color name="itemLineColor">#F0F0F0</color>
     <color name="fontColor">#ffffff</color>
+    <color name="color_Black_half">#7f000000</color>
+    <color name="color_Black_half2">#4f000000</color>
+    <color name="color_Black_half20">#33000000</color>
 </resources>

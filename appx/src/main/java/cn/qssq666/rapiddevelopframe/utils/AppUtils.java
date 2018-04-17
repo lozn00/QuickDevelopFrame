@@ -9,14 +9,21 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.media.AudioManager;
 import android.net.Uri;
+import android.os.Build;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.support.v4.content.FileProvider;
 import android.support.v7.widget.RecyclerView;
 import android.text.ClipboardManager;
 import android.text.TextUtils;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
+import android.view.Window;
+import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ImageView;
 
@@ -27,6 +34,8 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.security.KeyStore;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -51,10 +60,44 @@ import cz.msebera.android.httpclient.protocol.HTTP;
 public class AppUtils {
 
 
+
     private static final String TAG = "AppUtils";
 
     public static void fixStatusHeight(Context context, View root) {
         fixStatusHeight(context, root, false);
+    }
+
+    public static Intent getShareFileIntent(File file) {
+        Intent intent = new Intent();
+        intent.setAction(Intent.ACTION_SEND);
+        intent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(file));
+        intent.setType("application/vnd.android.package-archive");
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        return intent;
+    }
+
+
+    private Uri startPhotoZoom(Activity activity, Uri uri, int size, int requestCode) {
+        Intent intent = new Intent("com.android.camera.action.CROP");
+        intent.setDataAndType(uri, "image/*");
+        intent.putExtra("crop", "true");
+        intent.putExtra("aspectX", 1);
+        intent.putExtra("aspectY", 1);
+        intent.putExtra("outputX", size);
+        intent.putExtra("outputY", size);
+        intent.putExtra("margin", 20.5d);
+        Uri uritempFile = Uri.parse("file:///" + MediaUtils.getCachePath() + "small.jpg");
+        intent.putExtra("output", uritempFile);
+        intent.putExtra("outputFormat", Bitmap.CompressFormat.JPEG.toString());
+        activity.startActivityForResult(intent, requestCode);
+        return uritempFile;
+    }
+
+    private void takePhoto(Activity activity, int requestCode) {
+        Intent intent = new Intent("android.media.action.IMAGE_CAPTURE");
+        intent.putExtra("output", Uri.fromFile(MediaUtils.getSdcardpApkFileName("poster_head.jpg")));
+        activity.startActivityForResult(intent, requestCode);
     }
 
 
@@ -64,7 +107,14 @@ public class AppUtils {
         intent.addCategory(Intent.CATEGORY_DEFAULT);
         intent.setDataAndType(Uri.fromFile(file), "application/vnd.android.package-archive");
         activity.startActivity(intent);
+
+
     }
+
+    private void selectPicture(Activity context, int requestCode) {
+        context.startActivityForResult(new Intent("android.intent.action.PICK", MediaStore.Audio.Media.EXTERNAL_CONTENT_URI), requestCode);
+    }
+
 
 /*    public static void notification(Context context){
         nm = (NotificationManager) context.getSystemService(NOTIFICATION_SERVICE);
@@ -166,24 +216,75 @@ public class AppUtils {
         }*/
     }
 
-    public static boolean closeKeyboard(Activity activity) {
+    public static void hiddenKeyboard(Activity activity) {
+        closeKeyboard(activity);
+    }
+
+    public static void closeKeyboard(Activity activity) {
         View view = activity.getWindow().peekDecorView();
+        closeKeyboard(activity,activity.getWindow(),view);
+    }
+
+    public static void closeKeyboard(Context activity, Window window, View view){
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN );
         if (view != null) {
             InputMethodManager inputMethodManager = (InputMethodManager) activity.getSystemService(Context.INPUT_METHOD_SERVICE);
-            return inputMethodManager.hideSoftInputFromWindow(view.getWindowToken(), 0);
+            inputMethodManager.hideSoftInputFromWindow(view.getWindowToken(), 0);
+        }
+    }
 
+
+    /**
+     * 判断当前软键盘是否打开
+     *
+     * @param activity
+     * @return
+     */
+    public static boolean isSoftInputShow(Activity activity) {
+
+        // 虚拟键盘隐藏 判断view是否为空
+        View view = activity.getWindow().peekDecorView();
+        if (view != null) {
+            // 隐藏虚拟键盘
+            InputMethodManager inputmanger = (InputMethodManager) activity
+                    .getSystemService(Activity.INPUT_METHOD_SERVICE);
+//       inputmanger.hideSoftInputFromWindow(view.getWindowToken(),0);
+
+            return inputmanger.isActive() && activity.getWindow().getCurrentFocus() != null;
         }
         return false;
     }
 
-    public static boolean closeKeyboard(Context activity, View view) {
-        InputMethodManager imm = (InputMethodManager) activity.getSystemService(Context.INPUT_METHOD_SERVICE);
-        return imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+
+    public static String getPhotoFileName() {
+        Date date = new Date(System.currentTimeMillis());
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+        return sdf.format(date) + AppUtils.getRandom(3) + ".jpg";
+//        return "temp_head.png";
     }
 
-    public static void closeKeyboardNew(Context activity, View view) {
-        InputMethodManager inputMethodManager = (InputMethodManager) activity.getSystemService(Context.INPUT_METHOD_SERVICE);
-        inputMethodManager.hideSoftInputFromInputMethod(view.getApplicationWindowToken(), 0);
+    public static File getCachePath() {
+        File dir = null;
+        if (!Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
+            dir = new File(Environment.getDataDirectory(), "meimi/temp");
+        } else {
+            dir = new File(Environment.getExternalStorageDirectory(), "meimi/temp");
+        }
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+        return dir;
+    }
+
+    public static File getTempCacheFileName() {
+        return new File(getCachePath(), getPhotoFileName());
+    }
+
+    public static int getRandom(int n) {
+        int ans = 0;
+        while (Math.log10(ans) + 1 < n)
+            ans = (int) (Math.random() * Math.pow(10, n));
+        return ans;
     }
 
     /**
@@ -273,7 +374,7 @@ public class AppUtils {
         Intent intent = new Intent(context, PhotoActivity.class);
         intent.putExtra(PhotoActivity.INTENT_IMAGES, imgs);
         intent.putExtra(PhotoActivity.INTENT_POSITION, currentPosition);
-        AppUtils.skipActivity(context, intent);
+        AppUtils.jumpActivity(context, intent);
     }
 
     public static void toWebView(Context context, String url) {
@@ -298,11 +399,11 @@ public class AppUtils {
         audioManager.abandonAudioFocus(null);
     }
 
-    public static void skipActivity(Context context, Class<? extends Activity> clazz) {
-        skipActivity(context, new Intent(context, clazz));
+    public static void jumpActivity(Context context, Class<? extends Activity> clazz) {
+        jumpActivity(context, new Intent(context, clazz));
     }
 
-    public static void skipActivity(Context context, Intent intent) {
+    public static void jumpActivity(Context context, Intent intent) {
 
         context.startActivity(intent);
     }
@@ -335,6 +436,20 @@ public class AppUtils {
         Intent intent = new Intent(Intent.ACTION_VIEW, uri);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         context.startActivity(intent);
+    }
+
+    public static void openExtraWebView(Context context, String url) {
+        Intent intent = new Intent();
+        intent.setAction("android.intent.action.VIEW");
+        Uri content_url = Uri.parse(url);
+        intent.setData(content_url);
+        try {
+            context.startActivity(intent);
+
+        } catch (Exception e) {
+
+            ToastUtils.showToast("无法打开" + url);
+        }
     }
 
     /**
@@ -489,34 +604,70 @@ public class AppUtils {
         return null;
     }
 
-    public static String decodeParam(String json) {
-        try {
-            return URLDecoder.decode(json, "utf-8");
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+    public static int generateViewId() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            return View.generateViewId();
+        } else {
 
+            for (; ; ) {
+                // aapt-generated IDs have the high byte nonzero; clamp to the range under that.
+                int newValue = 100000 + 1;
+                if (newValue > 0x00FFFFFF) newValue = 1; // Roll over to 1, not 0.
+                return 100000;
+            }
         }
-        return json;
+    }
+
+    public static void cutOutPic(Activity activity, File operaFile, File savePath, int requestCode) {
+        cutOutPic(activity, operaFile, savePath, 1000, 1000, requestCode);
     }
 
 
-    public static SchemeRegistry getSchemeRegistry() {
-        try {
-            KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
-            trustStore.load(null, null);
-            MySSLSocketFactory sf = new MySSLSocketFactory(trustStore);
-            sf.setHostnameVerifier(MySSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
-            HttpParams params = new BasicHttpParams();
-            HttpConnectionParams.setConnectionTimeout(params, 10000);
-            HttpConnectionParams.setSoTimeout(params, 10000);
-            HttpProtocolParams.setVersion(params, HttpVersion.HTTP_1_1);
-            HttpProtocolParams.setContentCharset(params, HTTP.UTF_8);
-            SchemeRegistry registry = new SchemeRegistry();
-            registry.register(new Scheme("http", PlainSocketFactory.getSocketFactory(), 80));
-            registry.register(new Scheme("https", sf, 443));
-            return registry;
-        } catch (Exception e) {
-            return null;
+    public static Uri parseUri(Context context, File file) {
+        if (Build.VERSION.SDK_INT >= 24) {
+            return FileProvider.getUriForFile(context, context.getPackageName() + ".fileprovider", file);
+        } else {
+            return Uri.parse(file.getAbsolutePath());
         }
+    }
+
+    public static void cutOutPic(Activity activity, File operaFile, File saveFile, int width, int height, int requestCode) {
+        Intent intent = new Intent("com.android.camera.action.CROP");
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        Uri operaUri;
+
+        if (Build.VERSION.SDK_INT >= 24) {
+            operaUri = FileProvider.getUriForFile(activity, activity.getPackageName() + ".fileprovider", operaFile);
+        } else {
+            operaUri = Uri.parse(saveFile.getAbsolutePath());
+        }
+        intent.setDataAndType(operaUri, "image/*");
+        // 下面这个crop=true是设置在开启的Intent中设置显示的VIEW可裁剪
+        intent.putExtra("crop", "true");
+        intent.putExtra("circleCrop", false);
+        //该参数可以不设定用来规定裁剪区的宽高比
+        intent.putExtra("aspectX", 1);
+        intent.putExtra("aspectY", 1);
+        //该参数设定为你的imageView的大小
+        intent.putExtra("outputX", width);
+        intent.putExtra("outputY", height);
+        intent.putExtra("scale", true);
+        //是否返回bitmap对象
+        intent.putExtra("return-data", true);
+        Uri saveUri;
+        if (Build.VERSION.SDK_INT >= 24) {
+            saveUri = FileProvider.getUriForFile(activity,
+                    activity.getPackageName() + ".fileprovider", saveFile.getParentFile());
+        } else {
+            saveUri = Uri.parse(saveFile.getAbsolutePath());//可能填写的是目录
+        }
+        intent.putExtra(MediaStore.EXTRA_OUTPUT, saveUri);//无法保存裁剪
+  /*      photoReference = new SoftReference<>((Bitmap) (extras.getParcelable("data")));
+        ivfront.setImageBitmap(photoReference.get());*/
+        //不启用人脸识别
+        intent.putExtra("noFaceDetection", false);
+        intent.putExtra("outputFormat", Bitmap.CompressFormat.JPEG.toString());//输出图片的格式
+        activity.startActivityForResult(intent, requestCode);
     }
 }

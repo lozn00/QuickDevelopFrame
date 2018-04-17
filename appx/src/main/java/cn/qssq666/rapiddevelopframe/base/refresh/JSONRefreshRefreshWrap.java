@@ -46,7 +46,9 @@
 
 package cn.qssq666.rapiddevelopframe.base.refresh;
 
+import android.databinding.DataBindingUtil;
 import android.support.v7.widget.RecyclerView;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -57,14 +59,19 @@ import com.android.volley.NetworkError;
 import com.android.volley.ParseError;
 import com.scwang.smartrefresh.layout.SmartRefreshLayout;
 
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.List;
 
 import cn.qssq666.rapiddevelopframe.BuildConfig;
 import cn.qssq666.rapiddevelopframe.R;
+import cn.qssq666.rapiddevelopframe.databinding.ViewDataEmptyBinding;
 import cn.qssq666.rapiddevelopframe.global.SuperAppContext;
 import cn.qssq666.rapiddevelopframe.https.GenericParseResposeListener;
 import cn.qssq666.rapiddevelopframe.https.HttpUtil;
+import cn.qssq666.rapiddevelopframe.https.httperror.LocalCacheAvaliableException;
+import cn.qssq666.rapiddevelopframe.test.TestUtils;
 import cn.qssq666.rapiddevelopframe.utils.Prt;
 import cn.qssq666.rapiddevelopframe.utils.ToastUtils;
 import cz.msebera.android.httpclient.HttpException;
@@ -75,12 +82,15 @@ import cz.msebera.android.httpclient.HttpException;
 
 public abstract class JSONRefreshRefreshWrap<ADAPTER extends RecyclerView.Adapter> extends BaseRefreshWrap<ADAPTER> {
 
-    private cn.qssq666.rapiddevelopframe.viewholder.ViewDataEmptyBinding emptyViewBinding;
-
     public JSONRefreshRefreshWrap() {
     }
 
-    private static final String TAG = "JSONRefreshRefreshWrap";
+
+    public ViewDataEmptyBinding getEmptyViewBinding() {
+        return emptyViewBinding;
+    }
+
+    private ViewDataEmptyBinding emptyViewBinding;
 
     public void onParseSucc(List list) {
 
@@ -96,6 +106,7 @@ public abstract class JSONRefreshRefreshWrap<ADAPTER extends RecyclerView.Adapte
     GenericParseResposeListener genericParseResposeListener = new GenericParseResposeListener<List>() {
         @Override
         public void onError(Exception error) {
+            onParseError(error);
             if (BuildConfig.DEBUG) {
                 Prt.w(TAG, "Net Error:" + Log.getStackTraceString(error));
             }
@@ -113,10 +124,12 @@ public abstract class JSONRefreshRefreshWrap<ADAPTER extends RecyclerView.Adapte
                 }
                 if (error instanceof JSONException || error instanceof ParseError) {
 
-                    onEmptyData(SuperAppContext.getInstance().getString(R.string.server_data_parse_error, error.toString()));
+                    onEmptyData(SuperAppContext.getInstance().getString(R.string.server_data_parse_error, error.getMessage()));
                 } else if (error instanceof NetworkError) {
+                    onEmptyData("网络错误");
+                } else if (error instanceof LocalCacheAvaliableException) {
                     onEmptyData("本地缓存不可用");
-                } else if (error instanceof HttpException) {
+                }  else if (error instanceof HttpException) {
 
                     onEmptyData("网络错误 " + error.getMessage());
                 } else {
@@ -126,22 +139,24 @@ public abstract class JSONRefreshRefreshWrap<ADAPTER extends RecyclerView.Adapte
             }
         }
 
+
+
         @Override
         public void onSucc(List result) {
             onParseSucc(result);
 
             if (isLoadMore()) {
-                getSwipyRefreshLayout().finishLoadmore();
+                getSwipyRefreshLayout().finishLoadMore();
                 if (result == null || result.size() == 0) {
-                    getSwipyRefreshLayout().setLoadmoreFinished(true);//没有更多数据了。
+                    getSwipyRefreshLayout().setNoMoreData(true);//没有更多数据了。
                     onNotMoreData();
                     return;
                 }
                 getRecyclervdapter().appendModels(result);
             } else {
-                if (getPage() == 0 && getSwipyRefreshLayout().isLoadmoreFinished()) {
-                    getSwipyRefreshLayout().setLoadmoreFinished(false);
-                }
+             /*   if (getPage() == 0 && getSwipyRefreshLayout().isLoadmoreFinished()) {
+                    getSwipyRefreshLayout().setNoMoreData(false);
+                }*/
                 getSwipyRefreshLayout().finishRefresh();
                 if (result == null || result.size() == 0) {
                     onEmptyData(null);
@@ -156,8 +171,7 @@ public abstract class JSONRefreshRefreshWrap<ADAPTER extends RecyclerView.Adapte
 
             }
             onChangeData();
-            runLayoutAnimation(getRecyclerView());
-//            getRecyclervdapter().notifyDataSetChanged();
+            getRecyclervdapter().notifyDataSetChanged();
         }
 
         /**
@@ -172,30 +186,77 @@ public abstract class JSONRefreshRefreshWrap<ADAPTER extends RecyclerView.Adapte
         }
     };
 
+    protected void onParseError(Exception error) {
+
+    }
+
     public void onChangeData() {
 
     }
 
+    public  String getInterceptEmptyDataTip(){
+        return "数据为空";
+    }
+    public boolean isInterceptEmptyData(){
+        return false;
+    }
     protected void onEmptyData(Object object) {
 
         if (needEmptyView()) {
 
-            getSwipyRefreshLayout().setVisibility(View.GONE);
-            if (object == null) {
-                emptyViewBinding.tvReason.setText(SuperAppContext.getInstance().getString(R.string.data_load_fail_is_empty));
-            } else if (object instanceof String) {
-                emptyViewBinding.tvReason.setText(object + "");
-            } else if (object instanceof Exception) {
-                emptyViewBinding.tvReason.setText(SuperAppContext.getInstance().getString(R.string.data_load_fail_new_error));
+            if(isInterceptEmptyData()){
+                emptyViewBinding.tvReason.setText(getInterceptEmptyDataTip());
+            }else{
+                if (object == null) {
+                    emptyViewBinding.tvReason.setText(getEmptyDataTip());
+                } else if (object instanceof String) {
+                    emptyViewBinding.tvReason.setText(object + "");
+                } else if (object instanceof Exception) {
+                    emptyViewBinding.tvReason.setText(SuperAppContext.getInstance().getString(R.string.data_load_fail_new_error));
 
+                }
             }
+
             emptyViewBinding.getRoot().setVisibility(View.VISIBLE);
         }
     }
 
     public void queryData() {
-        HttpUtil.genericParseRequest(SuperAppContext.getInstance(), getUrl(getPage()), getRequestHead(), genericParseResposeListener);
+        ensureEmptyViewHide();
+        String url = getUrl(getPage());
+        if (BuildConfig.DEBUG && TextUtils.isEmpty(url)) {
 
+
+            Type types = getAdapter().getClass().getGenericSuperclass();
+
+            Type[] genericType = ((ParameterizedType) types).getActualTypeArguments();
+
+            if (genericType != null && genericType.length > 0) {//模拟数据。
+                Class classs = (Class) genericType[0];
+                List<Object> modeListAndFillField = TestUtils.createModeListAndFillField(classs, 15);
+                genericParseResposeListener.onSucc(modeListAndFillField);
+            } else {
+                throw new RuntimeException("无法模拟填充数据,适配器不支持 " + getAdapter().getClass().getName() + "没有添加泛型模型");
+            }
+
+        } else {
+            HttpUtil.genericParseRequest(SuperAppContext.getInstance(), url, getRequestHead(), genericParseResposeListener);
+
+        }
+
+    }
+
+    private void ensureEmptyViewHide() {
+        if (needEmptyView() && emptyViewBinding != null && emptyViewBinding.getRoot().getVisibility() == View.VISIBLE) {
+            emptyViewBinding.getRoot().setVisibility(View.GONE);
+
+        }
+    }
+
+    @Override
+    public void queryDataRereshAndSetProgressUi() {
+        ensureEmptyViewHide();
+        super.queryDataRereshAndSetProgressUi();
     }
 
     public void onNotMoreData() {
@@ -228,25 +289,20 @@ public abstract class JSONRefreshRefreshWrap<ADAPTER extends RecyclerView.Adapte
     public void onPreInitFinish() {
 
         if (needEmptyView()) {
-//            emptyViewBinding = DataBindingUtil.inflate(LayoutInflater.from(getSwipyRefreshLayout().getContext()), R.layout.view_data_empty, (ViewGroup) getSwipyRefreshLayout().getParent(), false);
-            View view = LayoutInflater.from(getSwipyRefreshLayout().getContext()).inflate(R.layout.view_data_empty, (ViewGroup) getSwipyRefreshLayout().getParent(), false);
-            emptyViewBinding = new cn.qssq666.rapiddevelopframe.viewholder.ViewDataEmptyBinding();
-            emptyViewBinding.setRootView(view);
+            emptyViewBinding = DataBindingUtil.inflate(LayoutInflater.from(getSwipyRefreshLayout().getContext()), R.layout.view_data_empty, (ViewGroup) getSwipyRefreshLayout().getParent(), false);
             View root = emptyViewBinding.getRoot();
             emptyViewBinding.btnReload.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
                     emptyViewBinding.getRoot().setVisibility(View.GONE);
-                    getSwipyRefreshLayout().setVisibility(View.VISIBLE);
+//                    getSwipyRefreshLayout().setVisibility(View.VISIBLE);
                     getSwipyRefreshLayout().autoRefresh();
                 }
             });
             emptyViewBinding.getRoot().setVisibility(View.GONE);
-            ViewGroup viewGroup = ((ViewGroup) getSwipyRefreshLayout().getParent());
-            if (viewGroup != null) {
-                viewGroup.addView(root);
-            }
-
+            ViewGroup parent = (ViewGroup) getSwipyRefreshLayout().getParent();
+            int index = parent.indexOfChild(getSwipyRefreshLayout());
+            parent.addView(emptyViewBinding.getRoot(), index + 1);
         }
 
     }
@@ -258,5 +314,9 @@ public abstract class JSONRefreshRefreshWrap<ADAPTER extends RecyclerView.Adapte
 
     public HashMap<String, String> getRequestHead() {
         return null;
+    }
+
+    public String getEmptyDataTip() {
+        return SuperAppContext.getInstance().getString(R.string.data_load_fail_is_empty);
     }
 }

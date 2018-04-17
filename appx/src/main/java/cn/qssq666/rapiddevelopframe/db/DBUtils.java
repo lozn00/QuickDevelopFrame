@@ -23,13 +23,20 @@ import java.util.List;
  *         创建表，创建库，插入数据，更新数据 删除数据
  *         <p>
  *         2016-10-27 10:24:23  增加 字段是否存在判断
- *         <p>
+ *         <p>2017年2月16日 12:49:31 别名 判断bug修复
  *         dbutils是单例的所以操作的时候切换选项卡容易销毁，因此不需要关闭只需要在activity做关闭就行了
+ *         2017年7月23日 17:20:03 增加唯一字段
  */
 public class DBUtils {
     private static final String TAG = "DBUtils";
     private Context context;
-    private String dbName = "huluboshi_base.db";
+
+    public void setAlias(String aliasName) {
+        this.aliasName = aliasName;
+    }
+
+    String aliasName = "";
+    private String dbName = "qssq.db";
 
     public SQLiteDatabase getDb() {
         return mSQLiteDatabase;
@@ -72,62 +79,104 @@ public class DBUtils {
         mSQLiteDatabase = sQLiteDatabaseObj.getSQLiteDatabase();
     }
 
+    /**
+     * 会自动加上别名
+     *
+     * @param table
+     * @return
+     */
     public boolean tableExist(String table) {
-        return sQLiteDatabaseObj.tableExist(table);
+        return tableExistFromDb(sQLiteDatabaseObj, aliasName + table);
+    }
+
+    public static boolean tableExistFromDb(SQLiteDatabaseObj databaseObj, String table) {
+        return databaseObj.tableExist(table);
     }
 
     /**
-     * 根据类的字节码自动创建表，如果存在不会创建,如果是int,或者integer类型的将创建的是integer类型，如果注解是id那么自动创建id字段，此类必须有注解，否则将无主见。其他类型将默认按字符串来创建表
+     * 根据类的字节码自动创建表，如果存在不会创建, 会自动加上别名 在本方法。 如果是int,或者integer类型的将创建的是integer类型，如果注解是id那么自动创建id字段，此类必须有注解，否则将无主见。其他类型将默认按字符串来创建表
      * http://blog.csdn.net/naturebe/article/details/6981843
      *
-     * @param klass
+     * @param
      * @return
      */
+
+
+    public boolean modifyTableName(String groupTableOld, String groupTableNew) {
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("ALTER   TABLE  %s RENAME TO %s", groupTableOld, groupTableNew));
+
+        try {
+            sQLiteDatabaseObj.execSQL(sb.toString());
+            return true;
+
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+
     public boolean createTable(Class<?> klass) {
-        String tableName = ReflectUtils.getTableNameByClass(klass);
-        if (sQLiteDatabaseObj.tableExist(tableName)) {
+        String className = getTableName(klass);
+        if (sQLiteDatabaseObj.tableExist(className)) {
             return false;
         }
         StringBuilder sb = new StringBuilder();
-        sb.append("create table " + tableName);
-        // sb.append("create table " + ReflectUtils.
-        // getTableNameByClass(klass));
-        sb.append("(");
-        Field[] fields = getDeclared ? ReflectUtils.getDeclaredFields(klass) : ReflectUtils.getFields(klass);
+        sb.append("create table " + className + "(");
+        Field[] fields = getDbFieldBy(mGetDeclared, klass);
+//        Field[] fields = getDbFieldBy(klass);
         Log.i(TAG, "field总数" + fields.length);
         if (fields == null || fields.length == 0) {
-            throw new RuntimeException("抱歉,无法创建table," + tableName + "没有可创建的字段");
+            throw new RuntimeException("抱歉,无法创建table," + className + "没有可创建的字段");
         }
         for (int i = 0; i < fields.length; i++) {
-            if (ReflectUtils.isIgnoreFiled(fields[i])) {
+            Field field = fields[i];
+            if (ReflectUtils.isIgnoreFiled(field)) {
                 continue;
             }
-            if (ReflectUtils.isConstant(fields[i])) {
+            if (field.isSynthetic()) {
                 continue;
-            } else if (ReflectUtils.isIDField(fields[i])) {
-                sb.append(ReflectUtils.getColumnNameByField(fields[i]) + " integer primary key autoincrement");
-            } else if (ReflectUtils.isIntType(fields[i])) {
-                sb.append(ReflectUtils.getColumnNameByField(fields[i]) + " integer");
-            } else if (ReflectUtils.isDoubleType(fields[i])) {
-                sb.append(ReflectUtils.getColumnNameByField(fields[i]) + " REAL");//浮点型
-            } else if (ReflectUtils.isLongType(fields[i])) {
-                sb.append(ReflectUtils.getColumnNameByField(fields[i]) + " number");
-            } else if (ReflectUtils.isDoubleType(fields[i])) {
-                sb.append(ReflectUtils.getColumnNameByField(fields[i]) + " REAL");
-            } else if (ReflectUtils.isBooleanType(fields[i])) {
-                sb.append(ReflectUtils.getColumnNameByField(fields[i]) + " integer");
-            } else if (ReflectUtils.isFloatType(fields[i]) || ReflectUtils.isDoubleType(fields[i])) {
-                sb.append(ReflectUtils.getColumnNameByField(fields[i]) + " REAL");//浮点型
-            } else if (ReflectUtils.isStringType(fields[i])) {
-                sb.append(ReflectUtils.getColumnNameByField(fields[i]) + " varchar");//字符型
+            }
+
+            String temp = DBUtils.getDbFieldDeclare(field, true);
+            if (temp != null) {
+                sb.append(temp);
             } else {
                 continue;
             }
+           /* if (ReflectUtils.isConstant(field)) {
+                continue;
+            } else if (ReflectUtils.isIDField(field)) {
+                sb.append(ReflectUtils.getColumnNameByField(field) + " integer primary key autoincrement");
+            } else if (ReflectUtils.getColumnType(field) != null) {
+                sb.append(ReflectUtils.getColumnNameByField(field) + " " + ReflectUtils.getColumnType(field) + ReflectUtils.getUniqueCrateFieldFlag(field));//浮点型
+            } else if (ReflectUtils.isIntType(field)) {
+                sb.append(ReflectUtils.getColumnNameByField(field) + " integer" + ReflectUtils.getUniqueCrateFieldFlag(field));
+            } else if (ReflectUtils.isDoubleType(field)) {
+                sb.append(ReflectUtils.getColumnNameByField(field) + " REAL" + ReflectUtils.getUniqueCrateFieldFlag(field));//浮点型
+            } else if (ReflectUtils.isLongType(field)) {
+                sb.append(ReflectUtils.getColumnNameByField(field) + " number" + ReflectUtils.getUniqueCrateFieldFlag(field));
+            } else if (ReflectUtils.isDoubleType(field)) {
+                sb.append(ReflectUtils.getColumnNameByField(field) + " REAL" + ReflectUtils.getUniqueCrateFieldFlag(field));
+            } else if (ReflectUtils.isBooleanType(field)) {
+                sb.append(ReflectUtils.getColumnNameByField(field) + " integer" + ReflectUtils.getUniqueCrateFieldFlag(field));
+            } else if (ReflectUtils.isFloatType(field) || ReflectUtils.isDoubleType(field)) {
+                sb.append(ReflectUtils.getColumnNameByField(field) + " REAL" + ReflectUtils.getUniqueCrateFieldFlag(field));//浮点型
+            } else if (ReflectUtils.isStringType(field)) {
+                sb.append(ReflectUtils.getColumnNameByField(field) + " varchar" + ReflectUtils.getUniqueCrateFieldFlag(field));//字符型
+            } else {
+                continue;
+            }*/
+
+
             sb.append(",");
         }
-        sb.setLength(sb.length() - 1);//删除,
+        if (sb.toString().endsWith(",")) {
+            sb.setLength(sb.length() - 1);//删除,
+        }
         sb.append(")");
-        Log.i(TAG, "create table,sql:" + sb.toString());
+        Log.w(TAG, "create table,sql:" + sb.toString());
         // sb.append("("++")");
         // String sql="create table"+tableName;
         // mSQLiteDatabase.execSQL(sql);
@@ -135,13 +184,54 @@ public class DBUtils {
         return true;
     }
 
+    public static String getDbFieldDeclare(Field field, boolean needField) {
+        String result = null;
+        if (ReflectUtils.isConstant(field)) {
+            return null;
+        } else if (ReflectUtils.isIDField(field)) {
+            result = "integer primary key autoincrement";
+        } else if (ReflectUtils.getColumnType(field) != null) {
+            result = ReflectUtils.getColumnType(field) + ReflectUtils.getUniqueCrateFieldFlag(field);//浮点型
+        } else if (ReflectUtils.isIntType(field)) {
+            result = "integer" + ReflectUtils.getUniqueCrateFieldFlag(field);
+        } else if (ReflectUtils.isDoubleType(field)) {
+            result = "REAL" + ReflectUtils.getUniqueCrateFieldFlag(field);//浮点型
+        } else if (ReflectUtils.isLongType(field)) {
+            result = "number" + ReflectUtils.getUniqueCrateFieldFlag(field);
+        } else if (ReflectUtils.isDoubleType(field)) {
+            result = "REAL" + ReflectUtils.getUniqueCrateFieldFlag(field);
+        } else if (ReflectUtils.isBooleanType(field)) {
+            result = "integer" + ReflectUtils.getUniqueCrateFieldFlag(field);
+        } else if (ReflectUtils.isFloatType(field) || ReflectUtils.isDoubleType(field)) {
+            result = "REAL" + ReflectUtils.getUniqueCrateFieldFlag(field);//浮点型
+        } else if (ReflectUtils.isStringType(field)) {
+            result = "varchar" + ReflectUtils.getUniqueCrateFieldFlag(field);//字符型
+        } else {
+        }
+        if (result == null) {
+            return null;
+        } else {
+            if (needField) {
+                return ReflectUtils.getColumnNameByField(field) + " " + result;
+            } else {
+                return result;
+            }
+        }
+    }
+
+
     /**
      * 删除表
      *
      * @param klass
      */
     public void deleteTable(Class<?> klass) {
-        sQLiteDatabaseObj.execSQL("DROP TABLE " + ReflectUtils.getTableNameByClass(klass));
+        deleteTable(getTableName(klass));
+    }
+
+    public void deleteTable(String tableName) {
+
+        ToolHelper.deleteTable(sQLiteDatabaseObj, tableName);
     }
 
     /**
@@ -160,10 +250,11 @@ public class DBUtils {
             return -2;
         }
 
-        int valueId = ReflectUtils.getIntValue(object, getDeclared ? ReflectUtils.getDeclaredIDField(klass) : ReflectUtils.getIDField(klass));//获取id字段的 值
-        return mSQLiteDatabase.update(ReflectUtils.getTableNameByClass(klass), values, ReflectUtils.getColumnNameByField(getDeclared ? ReflectUtils.getDeclaredIDField(klass) : ReflectUtils.getIDField(klass)) + "=?", new String[]{"" + valueId});
+        int valueId = ReflectUtils.getIntValue(object, getIdFieldFromJavaBean(klass));//获取id字段的 值
+        return mSQLiteDatabase.update(aliasName + ReflectUtils.getTableNameByClass(klass), values, ReflectUtils.getColumnNameByField(getIdFieldFromJavaBean(klass)) + "=?", new String[]{"" + valueId});
 
     }
+
 
     public int updateAllByField(Object object, String column, String value) {
 
@@ -175,7 +266,7 @@ public class DBUtils {
             return -2;
         }
 
-        return mSQLiteDatabase.update(ReflectUtils.getTableNameByClass(klass), values, column + "=?", new String[]{"" + value});
+        return mSQLiteDatabase.update(aliasName + ReflectUtils.getTableNameByClass(klass), values, column + "=?", new String[]{"" + value});
 
     }
 
@@ -193,8 +284,12 @@ public class DBUtils {
         if (b == false) {
             return -2;
         }
-        int valueId = ReflectUtils.getIntValue(object, getDeclared ? ReflectUtils.getDeclaredIDField(klass) : getDeclared ? ReflectUtils.getDeclaredIDField(klass) : ReflectUtils.getIDField(klass));//获取id字段的 值
-        return mSQLiteDatabase.update(ReflectUtils.getTableNameByClass(klass), values, ReflectUtils.getColumnNameByField(getDeclared ? ReflectUtils.getDeclaredIDField(klass) : ReflectUtils.getIDField(klass)) + "=?", new String[]{"" + valueId});
+        int valueId = getIntValue(object, klass);//获取id字段的 值
+        return mSQLiteDatabase.update(aliasName + ReflectUtils.getTableNameByClass(klass), values, ReflectUtils.getColumnNameByField(getIdFieldFromJavaBean(klass)) + "=?", new String[]{"" + valueId});
+    }
+
+    public int getIntValue(Object object, Class<?> klass) {
+        return ReflectUtils.getIntValue(object, mGetDeclared ? ReflectUtils.getDeclaredIDField(klass) : getIdFieldFromJavaBean(klass));
     }
 
     public long insert(Object object) {
@@ -204,7 +299,7 @@ public class DBUtils {
         if (!b) {
             return -2;
         }
-        return mSQLiteDatabase.insert(ReflectUtils.getTableNameByClass(klass), null, values);
+        return mSQLiteDatabase.insert(aliasName + ReflectUtils.getTableNameByClass(klass), null, values);
     }
 
     /**
@@ -214,7 +309,7 @@ public class DBUtils {
      * @return
      */
     public <T> int deleteById(Class<T> klass, int id) {
-        return delete(klass, ReflectUtils.getColumnNameByField(getDeclared ? ReflectUtils.getDeclaredIDField(klass) : ReflectUtils.getIDField(klass)) + "=?", new String[]{"" + id});
+        return delete(klass, ReflectUtils.getColumnNameByField(getIdFieldFromJavaBean(klass)) + "=?", new String[]{"" + id});
     }
 
     /**
@@ -242,6 +337,16 @@ public class DBUtils {
 //        return delete(klass, fieldstr + "=? and " + filedStr1 + "=?", new String[]{"" + value, value1});
     }
 
+    public <T> int deleteByColumnOr(Class<T> klass, String[] fieldArr, String[] valueArr) {
+        StringBuffer stringBuffer = new StringBuffer();
+        for (int i = 0; i < fieldArr.length; i++) {
+            String s = fieldArr[i];
+            stringBuffer.append(s + "=?" + (i == fieldArr.length - 1 ? "" : " or "));
+        }
+        return delete(klass, stringBuffer.toString(), valueArr);
+//        return delete(klass, fieldstr + "=? and " + filedStr1 + "=?", new String[]{"" + value, value1});
+    }
+
     /**
      * 删除所有
      *
@@ -254,7 +359,7 @@ public class DBUtils {
 
     public <T> int delete(Class<T> klass, String whereClause, String[] whereArgs) {
 
-        return mSQLiteDatabase.delete(ReflectUtils.getTableNameByClass(klass), whereClause, whereArgs);
+        return mSQLiteDatabase.delete(aliasName + ReflectUtils.getTableNameByClass(klass), whereClause, whereArgs);
     }
 
     /**
@@ -265,8 +370,8 @@ public class DBUtils {
      * @return
      */
     public <T> T queryByID(Class<T> klass, int id) {
-        String selection = ReflectUtils.getColumnNameByField(getDeclared ? ReflectUtils.getDeclaredIDField(klass) : ReflectUtils.getIDField(klass)) + "=?";
-        String table = ReflectUtils.getTableNameByClass(klass);
+        String selection = ReflectUtils.getColumnNameByField(getIdFieldFromJavaBean(klass)) + "=?";
+        String table = aliasName + ReflectUtils.getTableNameByClass(klass);
         Cursor cursor = mSQLiteDatabase.query(table, null, selection, new String[]{"" + id}, null, null, null, null);
 
         while (cursor.moveToNext()) {
@@ -277,18 +382,41 @@ public class DBUtils {
         if (cursor != null) {
             cursor.close();
         }
-//		return query(t, null, selection, new String []{""+id});
         return null;
     }
 
+    /**
+     * 根据游标反射对象数组
+     *
+     * @param klass
+     * @param getDeclared
+     * @param cursor
+     * @param <T>
+     * @return
+     */
+    public static <T> List<T> queryBeanListByCurosr(Class<T> klass, boolean getDeclared, Cursor cursor) {
+        ArrayList<T> arrayList = null;
+        if (cursor.getCount() > 0) {
+            arrayList = new ArrayList<T>();
+            while (cursor.moveToNext()) {
+                T object = getObjectByCurosrStatic(getDeclared, klass, cursor);
+                arrayList.add(object);
+            }
+        }
+        cursor.close();
+        return arrayList;
+
+
+    }
+
     public boolean queryIDExist(Class klass, int id) {
-        return queryColumnExist(klass, ReflectUtils.getColumnNameByField(getDeclared ? ReflectUtils.getDeclaredIDField(klass) : ReflectUtils.getIDField(klass)), id + "");
+        return queryColumnExist(klass, ReflectUtils.getColumnNameByField(getIdFieldFromJavaBean(klass)), id + "");
     }
 
     public boolean queryColumnExist(Class klass, String column, String value) {
         String selection = column + "=?";
         boolean flag = false;
-        String table = ReflectUtils.getTableNameByClass(klass);
+        String table = aliasName + ReflectUtils.getTableNameByClass(klass);
         Cursor cursor = mSQLiteDatabase.query(table, null, selection, new String[]{"" + value}, null, null, null, null);
         while (cursor.moveToNext()) {
             flag = true;
@@ -300,9 +428,10 @@ public class DBUtils {
     }
 
     public <T> T queryFinal(Class<T> klass) {
-        String table = ReflectUtils.getTableNameByClass(klass);
+        String table = aliasName + ReflectUtils.getTableNameByClass(klass);
         //select * from (select t.*,from table t order by pxColumn desc) where rownum =1
-        Cursor cursor = mSQLiteDatabase.query(table, null, null, null, null, null, (getDeclared ? ReflectUtils.getDeclaredIDField(klass).getName() : ReflectUtils.getIDField(klass).getName()) + " desc", "0,1");
+        //mGetDeclared ? ReflectUtils.getDeclaredIDField(klass).getName() : ReflectUtils.getIDField(klass).getName()
+        Cursor cursor = mSQLiteDatabase.query(table, null, null, null, null, null, (getIdFieldFromJavaBean(klass).getName()) + " desc", "0,1");
         while (cursor.moveToNext()) {
             T object = getObjectByCurosr(klass, cursor);
             cursor.close();
@@ -323,7 +452,7 @@ public class DBUtils {
      */
     public <T> T queryByColumn(Class<T> klass, String column, String value) {
         String selection = column + "=?";
-        String table = ReflectUtils.getTableNameByClass(klass);
+        String table = aliasName + ReflectUtils.getTableNameByClass(klass);
         Cursor cursor = mSQLiteDatabase.query(table, null, selection, new String[]{"" + value}, null, null, null, null);
         while (cursor.moveToNext()) {
             T object = getObjectByCurosr(klass, cursor);
@@ -387,7 +516,7 @@ public class DBUtils {
         /**
          * SELECT * FROM SearchBean ORDER BY id desc
          */
-        return query(klass, null, null, null, null, null, (fieldStr == null ? ReflectUtils.getColumnNameByField(getDeclared ? ReflectUtils.getDeclaredIDField(klass) : ReflectUtils.getIDField(klass)) : fieldStr) + " " + (desc ? "desc" : "asc"), null);
+        return query(klass, null, null, null, null, null, (fieldStr == null ? ReflectUtils.getColumnNameByField(getIdFieldFromJavaBean(klass)) : fieldStr) + " " + (desc ? "desc" : "asc"), null);
     }
 
     /**
@@ -397,7 +526,7 @@ public class DBUtils {
      * @return
      */
     public <T> List<T> queryAllByID(Class<T> klass, int id) {
-        String selection = ReflectUtils.getColumnNameByField(getDeclared ? ReflectUtils.getDeclaredIDField(klass) : ReflectUtils.getIDField(klass)) + "=?";
+        String selection = ReflectUtils.getColumnNameByField(getIdFieldFromJavaBean(klass)) + "=?";
         return query(klass, null, selection, new String[]{"" + id});
     }
 
@@ -443,7 +572,7 @@ public class DBUtils {
          * 查询所有还是弄一个对象来吧 查询的填充到一个对象是
          *
          */
-        String table = ReflectUtils.getTableNameByClass(klass);
+        String table = aliasName + ReflectUtils.getTableNameByClass(klass);
         ArrayList<T> arrayList = null;
         Log.i(TAG, "数据库是是否打开" + mSQLiteDatabase.isOpen());
 //		if(mSQLiteDatabase.isOpen()){
@@ -474,7 +603,7 @@ public class DBUtils {
          * 查询所有还是弄一个对象来吧 查询的填充到一个对象是
          *
          */
-        String table = ReflectUtils.getTableNameByClass(klassTable);
+        String table = aliasName + ReflectUtils.getTableNameByClass(klassTable);
         ArrayList<T> arrayList = null;
         Log.i(TAG, "数据库是是否打开" + mSQLiteDatabase.isOpen());
 //		if(mSQLiteDatabase.isOpen()){//SELECT DISTINCT name FROM COMPANY;
@@ -482,7 +611,7 @@ public class DBUtils {
         if (cursor.getCount() > 0) {
             arrayList = new ArrayList<T>();
             while (cursor.moveToNext()) {
-//                T object = getObjectByOnlyCurosr(klass, cursor, stringBuffer.toString());
+//                mDataBind object = getObjectByOnlyCurosr(klass, cursor, stringBuffer.toString());
                 T object = getObjectByOnlyCurosr(klass, cursor, queryFiledStr);
                 arrayList.add(object);
             }
@@ -513,7 +642,7 @@ public class DBUtils {
                 stringBuffer.append(",");
             }
         }
-        String table = ReflectUtils.getTableNameByClass(klassTable);
+        String table = aliasName + ReflectUtils.getTableNameByClass(klassTable);
         ArrayList<T> arrayList = null;
         Log.i(TAG, "数据库是是否打开" + mSQLiteDatabase.isOpen());
 //		if(mSQLiteDatabase.isOpen()){//SELECT DISTINCT name FROM COMPANY;
@@ -521,7 +650,7 @@ public class DBUtils {
         if (cursor.getCount() > 0) {
             arrayList = new ArrayList<T>();
             while (cursor.moveToNext()) {
-//                T object = getObjectByOnlyCurosr(klass, cursor, stringBuffer.toString());
+//                mDataBind object = getObjectByOnlyCurosr(klass, cursor, stringBuffer.toString());
                 T object = getObjectByCurosr(klass, cursor);
                 arrayList.add(object);
             }
@@ -541,7 +670,7 @@ public class DBUtils {
      */
     private <T> T getObjectByOnlyCurosr(Class<T> klass, Cursor cursor, String str) {
         T object = ReflectUtils.getInstance(klass);//创建一个对象
-        Field field = getDeclared ? ReflectUtils.getDeclaredField(klass, str) : ReflectUtils.getField(klass, str);
+        Field field = getJavaBeanField(klass, str);
         if (!field.isAccessible()) {
             field.setAccessible(true);
         }
@@ -592,6 +721,7 @@ public class DBUtils {
 
     }
 
+
     /**
      * 逆向过程通过游标 给字节码的所有 赋值  从数据库查询出来赋值给对象 这么做会导致一个问题那就是没法赋值给枚举了.
      *
@@ -600,9 +730,13 @@ public class DBUtils {
      * @param <T>
      * @return
      */
-    private <T> T getObjectByCurosr(Class<T> klass, Cursor cursor) {
+    public <T> T getObjectByCurosr(Class<T> klass, Cursor cursor) {
+        return getObjectByCurosrStatic(mGetDeclared, klass, cursor);
+    }
+
+    public static <T> T getObjectByCurosrStatic(boolean getDeclared, Class<T> klass, Cursor cursor) {
         T object = ReflectUtils.getInstance(klass);//创建一个对象
-        Field[] fields = getDeclared ? ReflectUtils.getDeclaredFields(klass) : ReflectUtils.getFields(klass);
+        Field[] fields = getDbFieldBy(getDeclared, klass);
         for (Field field : fields) {
             if (!field.isAccessible()) {
                 field.setAccessible(true);
@@ -656,12 +790,57 @@ public class DBUtils {
         return object;
     }
 
+
+    public static <T> T insertNewCloumnFromClasss(DBUtils dbUtils, Class<T> klass) {
+        return insertNewCloumnFromClasss(dbUtils, klass, dbUtils.getDb());
+    }
+
+    public static <T> T insertNewCloumnFromClasss(DBUtils dbUtils, Class<T> klass, SQLiteDatabase database) {
+        String tableName = dbUtils.getTableName(klass);
+        T object = ReflectUtils.getInstance(klass);//创建一个对象
+
+        Field[] fields = ReflectUtils.getJavaBeanAllFields(klass);
+        for (Field field : fields) {
+            if (!field.isAccessible()) {
+                field.setAccessible(true);
+            }
+            if (field.isSynthetic()) {
+                continue;
+            }
+            if (ReflectUtils.isIgnoreFiled(field)) {
+                continue;
+            }
+            if (ReflectUtils.isConstant(field)) {
+                continue;
+            }
+
+            String columnName = ReflectUtils.getColumnNameByField(field);
+
+            if (ToolHelper.columnExist(database, tableName, columnName)) {
+
+                Log.w(TAG, "ignore column ,because is exist " + columnName);
+                continue;
+            }
+
+
+            String dbFieldDeclare = getDbFieldDeclare(field, false);
+            if (dbFieldDeclare != null) {
+                ToolHelper.addColumn(database, tableName, columnName, dbFieldDeclare);
+            } else {
+
+                ToolHelper.addColumn(database, tableName, columnName);
+            }
+            Log.w(TAG, "insert column type " + dbFieldDeclare);
+        }
+        return object;
+    }
+
     private boolean fillContentValues(Object object, Class<? extends Object> klass, ContentValues values) {
         boolean flag = false;
-        Field[] fields = getDeclared ? ReflectUtils.getDeclaredFields(klass) : ReflectUtils.getFields(klass);
+        Field[] fields = getDbFieldBy(mGetDeclared, klass);
 
         for (Field field : fields) {
-            if (!getDeclared) {
+            if (!mGetDeclared) {
                 field.setAccessible(true);
             }
             if (ReflectUtils.isIgnoreFiled(field)) {
@@ -673,6 +852,10 @@ public class DBUtils {
             if (field.isSynthetic()) {
                 continue;
             }
+
+        /*    if (ReflectUtils.isIDField(field)) {
+                continue;
+            }*/
 
             boolean currentflag = fillContentValue(object, klass, values, field);
             Log.i(TAG, "fillContentValue->" + field.getName() + ",RESULT:" + currentflag);
@@ -691,7 +874,12 @@ public class DBUtils {
      */
     private boolean fillContentValue(Object object, Class<? extends Object> klass, ContentValues values, String fieldStr) {
 
-        Field field = getDeclared ? ReflectUtils.getDeclaredField(klass, fieldStr) : ReflectUtils.getField(klass, fieldStr);
+        Field field = ReflectUtils.getJavaBeanFieldFromFieldStr(klass,fieldStr);
+//        Field field = mGetDeclared ? ReflectUtils.getDeclaredField(klass, fieldStr) : ReflectUtils.getField(klass, fieldStr);
+        if(field==null){
+            Log.e(TAG,"cannot fill value field:"+fieldStr);
+            return false;
+        }
         return fillContentValue(object, klass, values, field);
 
     }
@@ -764,6 +952,44 @@ public class DBUtils {
         }
     }
 
+    public void execSQL(String sql) {
+        mSQLiteDatabase.execSQL(sql);
+    }
+
+    public <T> List<T> rawQuery(Class<T> classs, String sql) {
+
+
+        String table = aliasName + ReflectUtils.getTableNameByClass(classs);
+        Cursor cursor = mSQLiteDatabase.rawQuery(sql, null);
+        ArrayList<T> arrayList = null;
+        if (cursor.getCount() > 0) {
+            arrayList = new ArrayList<T>();
+            while (cursor.moveToNext()) {
+                T object = getObjectByCurosrStatic(mGetDeclared, classs, cursor);
+                arrayList.add(object);
+            }
+        }
+        cursor.close();
+        return arrayList;
+    }
+
+    /**
+     * 包含别名
+     *
+     * @param classs
+     * @return
+     */
+    public String getTableName(Class classs) {
+        String table = DBUtils.getTableNameStatic(aliasName, classs);
+        return table;
+    }
+
+    public static String getTableNameStatic(String aliasName, Class classs) {
+        String table = aliasName + ReflectUtils.getTableNameByClass(classs);
+        return table;
+    }
+
+
     public class SQLiteDatabaseObj {
 
 
@@ -787,6 +1013,12 @@ public class DBUtils {
             return sqLiteDatabase;
         }
 
+        /**
+         * 需要别名
+         *
+         * @param tableName
+         * @return
+         */
         public boolean tableExist(String tableName) {
             /**
              * upper表示转大写，所以所有转大写要么全都不转大写
@@ -797,17 +1029,26 @@ public class DBUtils {
             Cursor cursor = mSQLiteDatabase.rawQuery(sql, new String[]{tableName});
 
             boolean result = cursor.moveToNext() && cursor.getInt(0) > 0;
-            Log.i(TAG, "表是否存在:" + tableName + ",result:" + result);
+            Log.w(TAG, "表是否存在:" + tableName + ",result:" + result);
             return result;
         }
 
+        /**
+         * 不包含别名
+         *
+         * @param table
+         * @param filed
+         */
+
         public void deleteColumn(String table, String filed) {
-            String sql = " alter table " + table + " drop column " + filed;
+            String sql = " alter table " + aliasName + table + " drop column " + filed;
             mSQLiteDatabase.execSQL(sql);
 
         }
 
         /**
+         * 不包含别名 但是调用的 addColumn(table,colun,type)会加上别名。
+         *
          * @param table  ReflectUtils.getTableNameByClass(LocalMusicInfo.class)
          * @param column
          */
@@ -816,23 +1057,44 @@ public class DBUtils {
 
         }
 
+        /**
+         * 不包含别名
+         *
+         * @param table
+         * @param column
+         * @param type
+         */
         public void addColumn(String table, String column, String type) {
-            String sql = "alter table " + table + " add column " + column + " " + type;//ALTER TABLE Teachers ADD COLUMN Sex text;
+            String sql = "alter table " + aliasName + table + " add column " + column + " " + type;//ALTER TABLE Teachers ADD COLUMN Sex text;
 
             mSQLiteDatabase.execSQL(sql);
         }
 
+        /**
+         * 不包含别名
+         *
+         * @param table
+         * @param newTable
+         */
         public void reNameTable(String table, String newTable) {
-            mSQLiteDatabase.execSQL("alter table " + table + " rename to " + newTable);
+            mSQLiteDatabase.execSQL("alter table " + aliasName + table + " rename to " + newTable);
         }
 
+
+        /**
+         * 我会自动加上别名，因此传递的表明不能加上别名
+         *
+         * @param tableName
+         * @param columnName
+         * @return
+         */
         public boolean columnExist1(String tableName
                 , String columnName) {
             boolean result = false;
             Cursor cursor = null;
             try {
                 //查询一行
-                cursor = mSQLiteDatabase.rawQuery("SELECT * FROM " + tableName + " LIMIT 0"
+                cursor = mSQLiteDatabase.rawQuery("SELECT * FROM " + aliasName + tableName + " LIMIT 0"
                         , null);
                 result = cursor != null && cursor.getColumnIndex(columnName) != -1;
             } catch (Exception e) {
@@ -867,7 +1129,7 @@ public class DBUtils {
 
             try {
                 cursor = mSQLiteDatabase.rawQuery("select * from sqlite_master where name = ? and sql like ?"
-                        , new String[]{tableName, "%" + columnName + "%"});
+                        , new String[]{aliasName + tableName, "%" + columnName + "%"});
                 int a = cursor.getCount();
                 result = null != cursor && cursor.getCount() > 0;
 //                result = null != cursor && cursor.moveToFirst() ;
@@ -889,12 +1151,13 @@ public class DBUtils {
          * @return
          */
         public boolean tableExistOrCreate(Class classTable) {
-            if (!tableExist(ReflectUtils.getTableNameByClass(classTable))) {
+            if (!tableExist(aliasName + ReflectUtils.getTableNameByClass(classTable))) {
                 createTable(classTable);
                 return false;
             }
             return true;
         }
+
 
         public void execSQL(String sql) {
             mSQLiteDatabase.execSQL(sql);
@@ -920,15 +1183,173 @@ public class DBUtils {
         return sQLiteDatabaseObj == null;
     }
 
-    public void setGetDeclared(boolean getDeclared) {
-        this.getDeclared = getDeclared;
+    @Deprecated
+    public void setGetDeclared(boolean mGetDeclared) {
+//        this.mGetDeclared = mGetDeclared;
+    }
+
+
+    /**
+     * 只有符合javaBean 包含set get的才会被返回。 2017年12月3日 17:45:37
+     *
+     * @param getDeclared
+     * @param klass
+     * @return
+     */
+    public static Field[] getDbFieldBy(boolean getDeclared, Class klass) {
+        return ReflectUtils.getJavaBeanAllFields(klass);
+//      return   mGetDeclared ? ReflectUtils.getDeclaredFields(klass) : ReflectUtils.getFields(klass);
+    }
+
+
+    private <T> Field getJavaBeanField(Class<T> klass, String str) {
+        return ReflectUtils.getMethodFromAllField(klass, str);
+
+//        return mGetDeclared ? declaredField : ReflectUtils.getField(klass, str);
+    }
+
+    public Field getIdFieldFromJavaBean(Class<?> klass) {
+        return ReflectUtils.getJavaBeanIDFieldFromFields(klass);
+
     }
 
     /*
 
-     true,当前公共、保护、默认（包）访问和私有方法/ 成员，但不包括父类的方法 getFileds父类子类所有public
-
+     true,当前公共、保护、默认（包）访问和私有方法/ 成员，但不包括父类的方法 getFileds父类子类所有public        mGetDeclared 访问当前类所有的 包含私有的，但是只能访问当前类的 由于设计师根据。字段来设置值所以 ，整个思想都是错误的。
      */
-    private boolean getDeclared = false;
+    private boolean mGetDeclared = false;
+
+
+    public static class ToolHelper {
+
+        /**
+         * 需要别名
+         *
+         * @param tableName
+         * @return
+         */
+        public static boolean tableExist(SQLiteDatabase liteDatabase, String tableName) {
+            /**
+             * upper表示转大写，所以所有转大写要么全都不转大写
+             */
+            // name,type字段 sql表示为建表语句
+            //select count(*)  from sqlite_master where type='table' and name = 'yourtablename';
+            String sql = "select count(*) from sqlite_master where type = 'table' and upper(name) =upper( ? )";
+            Cursor cursor = liteDatabase.rawQuery(sql, new String[]{tableName});
+            boolean result = cursor.moveToNext() && cursor.getInt(0) > 0;
+            Log.w(TAG, "tabble exist:" + tableName + ",result:" + result);
+            return result;
+        }
+
+        /**
+         * 不包含别名
+         *
+         * @param table
+         * @param filed
+         */
+
+        public static void deleteColumn(SQLiteDatabase liteDatabase, String table, String filed) {
+            String sql = " alter table " + table + " drop column " + filed;
+            liteDatabase.execSQL(sql);
+
+        }
+
+        public static boolean columnExist(SQLiteDatabase liteDatabase, String tableName
+                , String columnName) {
+            boolean result = false;
+            Cursor cursor = null;
+            try {
+                //查询一行
+                cursor = liteDatabase.rawQuery("SELECT * FROM " + tableName + " LIMIT 0"
+                        , null);
+                result = cursor != null && cursor.getColumnIndex(columnName) != -1;
+            } catch (Exception e) {
+                Log.e(TAG, "checkColumnExists1..." + e.getMessage());
+            } finally {
+                if (null != cursor && !cursor.isClosed()) {
+                    cursor.close();
+                }
+            }
+
+            return result;
+        }
+
+        /**
+         * 不包含别名 但是调用的 addColumn(table,colun,type)会加上别名。
+         *
+         * @param table  ReflectUtils.getTableNameByClass(LocalMusicInfo.class)
+         * @param column
+         */
+        public static void addColumn(SQLiteDatabase liteDatabase, String table, String column) {
+            addColumn(liteDatabase, table, column, "varchar");
+
+        }
+
+        /**
+         * 不包含别名
+         *
+         * @param table
+         * @param column
+         * @param type
+         */
+        public static void addColumn(SQLiteDatabase liteDatabase, String table, String column, String type) {
+            String sql = "alter table " + table + " add column " + column + " " + type;//ALTER TABLE Teachers ADD COLUMN Sex text;
+
+            liteDatabase.execSQL(sql);
+        }
+
+        /**
+         * 不包含别名
+         *
+         * @param table
+         * @param newTable
+         */
+        public static void reNameTable(SQLiteDatabase liteDatabase, String table, String newTable) {
+            liteDatabase.execSQL("alter table " + table + " rename to " + newTable);
+        }
+
+
+        public static void deleteTable(SQLiteDatabaseObj sqLiteDatabaseObj, String tableName) {
+            sqLiteDatabaseObj.execSQL("DROP TABLE " + tableName);
+        }
+    }
+
+
+    public <T> List<T> queryByColumnArr(Class klassTable, Class<T> klass, String[] queryFiledStr, String[] selectionArgs) {
+        /**
+         * 查询所有还是弄一个对象来吧 查询的填充到一个对象是
+         *
+         */
+
+        StringBuffer stringBufferWhere = new StringBuffer();
+        for (int i = 0; i < queryFiledStr.length; i++) {
+            stringBufferWhere.append(queryFiledStr[i]);
+            stringBufferWhere.append("=?");
+
+            if (i != queryFiledStr.length - 1) {
+
+                stringBufferWhere.append(" and ");
+            }
+        }
+
+
+        String table = aliasName + ReflectUtils.getTableNameByClass(klassTable);
+        ArrayList<T> arrayList = null;
+        Log.i(TAG, "数据库是是否打开" + mSQLiteDatabase.isOpen());
+//		if(mSQLiteDatabase.isOpen()){//SELECT DISTINCT name FROM COMPANY;
+        String sql="select * from  " + table+" where "+stringBufferWhere.toString();
+        Cursor cursor = mSQLiteDatabase.rawQuery(sql, selectionArgs);
+        if (cursor.getCount() > 0) {
+            arrayList = new ArrayList<T>();
+            while (cursor.moveToNext()) {
+//                mDataBind object = getObjectByOnlyCurosr(klass, cursor, stringBuffer.toString());
+                T object = getObjectByCurosr(klass, cursor);
+                arrayList.add(object);
+            }
+        }
+        cursor.close();
+        return arrayList;
+    }
+
 
 }

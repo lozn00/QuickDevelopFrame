@@ -1,11 +1,21 @@
 package cn.qssq666.rapiddevelopframe.utils;
 
 import android.content.Context;
+import android.util.TypedValue;
 
 /**
  * Created by luozheng on 15/11/23.
  */
 public class DensityUtil {
+    public static int sp2px(Context context, float spVal)
+
+    {
+
+        return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP,
+
+                spVal, context.getResources().getDisplayMetrics());
+
+    }
 
     /**
      * 根据手机的分辨率从 dp 的单位 转成为 px(像素)  xxx的分辨率是比1920*1080还大 ？xxxhdpi density 1dp=? xxhdpi =480密度 =1920*1080 =1dp=3px xxxdpi=2048*1536 2560*1536 2560*1600
@@ -40,6 +50,10 @@ public class DensityUtil {
         return (int) (pxValue / fontScale + 0.5f);
     }
 
+    public static int px2sp(Context context, float pxValue) {
+        float scaledDensity = context.getResources().getDisplayMetrics().scaledDensity;
+        return (int) (pxValue / scaledDensity + 0.5f);
+    }
     /**
      * 将sp值转换为px值，保证文字大小不变
      *

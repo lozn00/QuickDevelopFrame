@@ -1,7 +1,6 @@
 package cn.qssq666.rapiddevelopframe.db;
 
 import android.app.Application;
-import android.content.Context;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
@@ -13,10 +12,13 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 
 import cn.qssq666.rapiddevelopframe.db.anotation.Column;
+import cn.qssq666.rapiddevelopframe.db.anotation.ColumnType;
+import cn.qssq666.rapiddevelopframe.db.anotation.DBIgnore;
 import cn.qssq666.rapiddevelopframe.db.anotation.ID;
-import cn.qssq666.rapiddevelopframe.db.anotation.Ignore;
 import cn.qssq666.rapiddevelopframe.db.anotation.Table;
-import cn.qssq666.rapiddevelopframe.utils.Prt;
+import cn.qssq666.rapiddevelopframe.db.anotation.Unique;
+import cn.qssq666.rapiddevelopframe.global.SuperAppContext;
+
 
 //import com.example.mydbutils.domain.New;
 
@@ -37,44 +39,7 @@ import cn.qssq666.rapiddevelopframe.utils.Prt;
  *         2016-1-9 15:19:34 update http://www.cnblogs.com/avenwu/p/4193000.html
  */
 public class ReflectUtils {
-
-
-    /**
-     * 这样做的目的是解决编译报错问题
-     *
-     * @param appContext
-     */
-    public static void installLeakCanary(Context appContext) {
-        /*
-        if (LeakCanary.isInAnalyzerProcess(this)) {
-      // This process is dedicated to LeakCanary for heap analysis.
-      // You should not init your app in this process.
-      return;
-    }
-    LeakCanary.install(this);
-         */
-        try {
-            Class<?> aClass = Class.forName("com.squareup.leakcanary.LeakCanary");
-
-            Method isInAnalyzerProcess = aClass.getMethod("isInAnalyzerProcess", Context.class);
-            boolean isAna = (boolean) isInAnalyzerProcess.invoke(null, appContext);
-            if (isAna) {
-                /*
-                //这个过程是专门为LeakCanary堆分析。
-      //你不应该在这个过程中初始化你的应用程序。
-                */
-                return;
-            }
-            Method method = aClass.getDeclaredMethod("install", Application.class);
-            method.invoke(null, appContext);
-            Prt.w(TAG, "leak初始化完毕");
-
-        } catch (Exception e) {
-            Prt.w(TAG, Prt.getStackTraceString(e));
-
-        }
-    }
-
+    private static final String TAG = "ReflectUtils";
 
 
     public static void clearFieldValue(Object o, String field) {
@@ -93,77 +58,6 @@ public class ReflectUtils {
         }*/
 
     }
-
-
-
-    @NonNull
-    public static String getGetName(Field field) {
-        String name = field.getName();
-        String getMethodName;
-        if (field.getType() == boolean.class) {
-
-            getMethodName = "is" + name.substring(0, 1).toUpperCase() + "" + name.substring(1, name.length());
-
-        } else {
-            getMethodName = "get" + name.substring(0, 1).toUpperCase() + "" + name.substring(1, name.length());
-
-        }
-//        }
-        return getMethodName;
-    }
-
-    @NonNull
-    public static String getSetName(Field field) {
-        String name = field.getName();
-        String setMethodNmae;
-        setMethodNmae = "set" + name.substring(0, 1).toUpperCase() + "" + name.substring(1, name.length());
-        return setMethodNmae;
-    }
-
-
-
-    /**
-     * @param src  被替换的
-     * @param from 新的
-     * @param <T>
-     * @return
-     */
-    public static <T> T copyObjectValue(T src, T from) {
-        Field[] fieldsFrom = from.getClass().getDeclaredFields();
-        Field[] fieldsSrc = from.getClass().getDeclaredFields();
-        for (int i = 0; i < fieldsFrom.length; i++) {
-            Field fieldFrom = fieldsSrc[i];
-            Field fieldSrc = fieldsFrom[i];
-            if (fieldFrom.isSynthetic()) {
-                continue;
-            }
-            String getMethodName = getGetName(fieldFrom);
-            String setMethodName = getSetName(fieldSrc);
-            try {
-                Method getMethod = from.getClass().getMethod(getMethodName);
-
-                Object invoke = getMethod.invoke(from);
-                Prt.d(TAG, "" + getMethodName + ":" + invoke);
-                Method setMethod = src.getClass().getMethod(setMethodName, getMethod.getReturnType());
-                Prt.d(TAG, "" + getMethodName + ":" + invoke + ",setMethod:" + setMethod);
-                setMethod.invoke(src, invoke);
-
-
-            } catch (NoSuchMethodException e) {
-                e.printStackTrace();
-
-            } catch (InvocationTargetException e) {
-                e.printStackTrace();
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
-            }
-
-        }
-        Prt.d(TAG, "复制对象后的结果:src:" + src + ",from:" + from);
-        return src;
-    }
-
-    private static final String TAG = "ReflectUtils";
 
 
     /**
@@ -199,14 +93,10 @@ public class ReflectUtils {
      * @return
      */
     public static Field[] getDeclaredFields(Class<?> klass) {
-//		Field[] fields = klass.getDeclaredFieldss();//这只能获取共有的方法 包括父类 岁所以没必要修改访问
         Field[] fields = klass.getDeclaredFields();//获取当前的所有
-        for (Field field : fields) {
-//            field.setAccessible(true);
-
-        }
         return fields;
     }
+
 
     public static Field[] getFields(Class<?> klass) {
 //		Field[] fields = klass.getDeclaredFieldss();//这只能获取共有的方法 包括父类
@@ -231,6 +121,38 @@ public class ReflectUtils {
             return true;
         } else {
             return false;
+        }
+    }
+
+    /**
+     * zuofei
+     *
+     * @param field
+     */
+    static public void removeFinal(Field field) {
+
+        Field slotField = null;
+        try {
+            slotField = Field.class.getDeclaredField("slot");
+            slotField.setAccessible(true);
+            slotField.set(field, 3);
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
+    static public void removeFinalAtJava(Field field) {
+
+        try {
+            Field modifiersField = Field.class.getDeclaredField("modifiers");
+            modifiersField.setAccessible(true);
+            modifiersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
         }
     }
 
@@ -294,6 +216,47 @@ public class ReflectUtils {
      */
     public static Field getDeclaredIDField(Class<?> klass) {
         Field[] fields = klass.getDeclaredFields();//getDeclaredFields只能获取子类的所有方法。 但是 getDeclaredFieldss只能获取当前类公开的方法
+        return getIDFieldFromFields(fields);
+    }
+
+    public static Field getJavaBeanIDFieldFromFields(Class<?> klass) {
+        Field[] javaBeanAllFields = getJavaBeanAllFields(klass);
+        return getIDFieldFromFields(javaBeanAllFields);
+
+    }
+
+    public static Field getJavaBeanFieldFromFieldStr(Class<?> klass, final String findFieldStr) {
+        Field[] javaBeanAllFields = getJavaBeanAllFields(klass, new ILoopAcceptBreak() {
+            @Override
+            public boolean isNeedInsertAndBreak(Field field, Class currentLoopClass) {
+                if (field.getName().equals(findFieldStr)) {
+
+                    return true;//f找到了就没必要再循环了.
+                } else {
+                    return false;
+                }
+            }
+
+            @Override
+            public boolean onlyReturBreakField() {
+                return true;
+            }
+        });
+        if (javaBeanAllFields != null && javaBeanAllFields.length > 0) {
+            Field javaBeanAllField = javaBeanAllFields[javaBeanAllFields.length - 1];
+            if (javaBeanAllField.getName().equals(findFieldStr)) {
+                return javaBeanAllField;
+
+            } else {
+
+            }
+
+        }
+        return null;
+
+    }
+
+    public static Field getIDFieldFromFields(Field[] fields) {
 //        Field[] fields = klass.getDeclaredFields();//getDeclaredFields只能获取子类的所有方法。
         ArrayList<Field> listBak = new ArrayList<>();//备份的id字段如果找不到申明的就用listBak
         for (Field field : fields) {
@@ -317,34 +280,10 @@ public class ReflectUtils {
         return field;
     }
 
+
     public static Field getIDField(Class<?> klass) {
         Field[] fields = klass.getFields();//getDeclaredFields只能获取子类的所有方法。 但是 getDeclaredFieldss只能获取当前类公开的方法
-
-//        Field[] fields = klass.getDeclaredFields();//getDeclaredFields只能获取子类的所有方法。
-        ArrayList<Field> listBak = new ArrayList<>();//备份的id字段如果找不到申明的就用listBak
-        for (Field field : fields) {
-            if (isIDField(field)) {
-                if (!field.isAccessible()) {
-                    field.setAccessible(true);
-                }
-                return field;
-            } else if ("_id".equals(field.getName()) || "id".equals(field.getName())) {
-                if (listBak.size() > 0 && listBak.get(0).equals("id")) {//找到的是_id
-                    listBak.add(0, field);//_id优先级比id高
-                } else if (listBak.size() == 0) {//可能是id也可能是_id
-                    listBak.add(field);
-                }
-            }
-
-        }
-        Field field = (listBak.size() == 0 ? null : listBak.get(0));
-        if (field == null) {
-            throw new RuntimeException("警告,没有找到id,请申明id或_id或使用注解申明其它字符的作为id字段");
-        }
-        if (!field.isAccessible()) {
-            field.setAccessible(true);
-        }
-        return field;
+        return getIDFieldFromFields(fields);
 
     }
 
@@ -431,11 +370,11 @@ public class ReflectUtils {
     }
 
     public static boolean isIgnoreFiled(Field field) {
-        return field.isAnnotationPresent(Ignore.class);
+        return field.isAnnotationPresent(DBIgnore.class);
     }
 
     /**
-     * 判断是否是id字段 通过注解
+     * 判断是否是id字段 通过注解 其他方式无效，必
      *
      * @param field
      * @return
@@ -445,21 +384,14 @@ public class ReflectUtils {
         if (field != null) {
             if (field.isAnnotationPresent(ID.class)) {
                 return true;
-            } else if ("id".equals(field.getName())) {
-                return true;
-            } else if ("_id".equals(field.getName())) {
-                return true;
             }
-//            field.setAccessible(true);
+        } else if ("id".equals(field.getName())) {
+            return true;
+        } else if ("_id".equals(field.getName())) {
+            return true;
         }
+
         return false;
-        //不能通过这个来判断了，只能通过注解判断是否是id
-        // if(field.getNickname().equalsIgnoreCase("id") ||
-        // field.getNickname().equalsIgnoreCase("_id")){
-        // {
-        // field.setAccessible(true);
-        // return true;
-        // }
     }
 
     public void ModifyField(Field field) {
@@ -723,7 +655,7 @@ public class ReflectUtils {
     }
 
     /**
-     * 根据字节码对象返回表名字符串
+     * 根据字节码对象返回表名字符串 返回名字不包含别名
      *
      * @param klass
      * @return
@@ -758,6 +690,351 @@ public class ReflectUtils {
     }
 
 
+    @NonNull
+    public static String getGetName(Field field) {
+        String name = field.getName();
+        String getMethodName;
+        if (field.getType() == boolean.class) {
+
+            getMethodName = "is" + name.substring(0, 1).toUpperCase() + "" + name.substring(1, name.length());
+
+        } else {
+            getMethodName = "get" + name.substring(0, 1).toUpperCase() + "" + name.substring(1, name.length());
+
+        }
+//        }
+        return getMethodName;
+    }
+
+    @NonNull
+    public static String getSetName(Field field) {
+        String name = field.getName();
+        String setMethodNmae;
+        setMethodNmae = "set" + name.substring(0, 1).toUpperCase() + "" + name.substring(1, name.length());
+        return setMethodNmae;
+    }
+
+
+    /**
+     * @param src  被替换的
+     * @param from 新的
+     * @param <T>
+     * @return
+     */
+    public static <T> T copyObjectValue(T src, T from) {
+        Field[] fieldsFrom = from.getClass().getDeclaredFields();
+        Field[] fieldsSrc = from.getClass().getDeclaredFields();
+        for (int i = 0; i < fieldsFrom.length; i++) {
+            Field fieldFrom = fieldsSrc[i];
+            Field fieldSrc = fieldsFrom[i];
+            if (fieldFrom.isSynthetic()) {
+                continue;
+            }
+            String getMethodName = getGetName(fieldFrom);
+            String setMethodName = getSetName(fieldSrc);
+            try {
+                Method getMethod = from.getClass().getMethod(getMethodName);
+
+                Object invoke = getMethod.invoke(from);
+                Log.d(TAG, "" + getMethodName + ":" + invoke);
+                Method setMethod = src.getClass().getMethod(setMethodName, getMethod.getReturnType());
+                Log.d(TAG, "" + getMethodName + ":" + invoke + ",setMethod:" + setMethod);
+                setMethod.invoke(src, invoke);
+
+
+            } catch (NoSuchMethodException e) {
+                e.printStackTrace();
+
+            } catch (InvocationTargetException e) {
+                e.printStackTrace();
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
+
+        }
+        Log.d(TAG, "复制对象后的结果:src:" + src + ",from:" + from);
+        return src;
+    }
+
+    public Method generateSetMethod(Class classs, Field field) {
+        String getMethodName = ReflectUtils.getGetName(field);
+        String setMethodName = ReflectUtils.getSetName(field);
+
+
+//          Method getMethod = classs.getMethod(getMethodName);
+        Method setMethod = null;
+        try {
+            setMethod = classs.getMethod(setMethodName, field.getType());
+            return setMethod;
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public Method generateGetMethod(Class classs, Field field) {
+        String getMethodName = ReflectUtils.getGetName(field);
+
+
+        try {
+            Method getMethod = classs.getMethod(getMethodName);
+            return getMethod;
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public interface ILoopAcceptBreak {
+
+        public boolean isNeedInsertAndBreak(Field field, Class currentLoopClass);
+
+        /**
+         * 是否只返回被终端的那个字段
+         *
+         * @return
+         */
+        boolean onlyReturBreakField();
+    }
+
+
+    public static Field[] getJavaBeanAllFields(Class<?> srcClass) {
+        return getJavaBeanAllFields(srcClass, null);
+
+    }
+
+    public static Field[] getJavaBeanAllFields(Class<?> srcClass, ILoopAcceptBreak iLoopAcceptBreak) {
+        ArrayList<Field> fieldsArray = new ArrayList<>();
+        whileloop:
+        while (srcClass != null && srcClass != Object.class) {
+            Field[] fieldsSrc = srcClass.getDeclaredFields();
+
+            forloop:
+            for (int i = 0; i < fieldsSrc.length; i++) {
+                Field fieldSrc = fieldsSrc[i];
+                if (iLoopAcceptBreak != null) {
+                    if (iLoopAcceptBreak.isNeedInsertAndBreak(fieldSrc, srcClass)) {
+                        fieldSrc.setAccessible(true);
+                        if (iLoopAcceptBreak.onlyReturBreakField()) {
+
+
+                            return new Field[]{fieldSrc};
+                        } else {
+                            fieldsArray.add(fieldSrc);
+                            break whileloop;
+
+                        }
+
+                    }
+                }
+                if (fieldSrc.isSynthetic()) {
+                    continue;
+                }
+                if (fieldSrc.getName().equals(fieldSrc.getName().toUpperCase())) {
+                    continue;//忽略大写字段
+                }
+                if ("serialVersionUID".equals(fieldSrc.getName())) {
+                    continue;
+                }
+                if (Modifier.isFinal(fieldSrc.getModifiers())) {
+                    continue;
+                }
+
+                if (Modifier.isStatic(fieldSrc.getModifiers())) {
+                    continue;
+                }
+                if (Modifier.isVolatile(fieldSrc.getModifiers())) {
+                    continue;
+                }
+                if (Modifier.isStrict(fieldSrc.getModifiers())) {
+                    continue;
+                }
+                if (Modifier.isNative(fieldSrc.getModifiers())) {
+                    continue;
+                }
+                if (Modifier.isTransient(fieldSrc.getModifiers())) {//一旦变量被transient修饰，变量将不再是对象持久化的一部分，该变量内容在序列化后无法获得访问。
+                    continue;
+                }
+
+                if (fieldSrc.isEnumConstant()) {
+                    continue;
+                }
+
+
+                //public static final long com.buyao.buliao.bean.DetailPersonModel.serialVersionUID
+                String getMethodName = ReflectUtils.getGetName(fieldSrc);
+                String setMethodName = ReflectUtils.getSetName(fieldSrc);
+
+                try {
+
+
+                    Method getMethod = srcClass.getMethod(getMethodName);
+                    Method setMethod = srcClass.getMethod(setMethodName, getMethod.getReturnType());
+                    if (setMethod != null && Modifier.isPublic(setMethod.getModifiers())) ;
+                    fieldsArray.add(fieldSrc);
+                    fieldSrc.setAccessible(true);
+
+                } catch (NoSuchMethodException e) {
+                    e.printStackTrace();
+
+                }
+
+            }
+            srcClass = srcClass.getSuperclass();
+        }
+
+
+        Field[] fields = new Field[fieldsArray.size()];
+        for (int i = 0; i < fieldsArray.size(); i++) {
+
+            fields[i] = fieldsArray.get(i);
+
+        }
+
+        return fields;
+
+    }
+
+
+    public static ArrayList<Method> getAllMethod(Class srcClass) {
+        ArrayList<Method> methods = new ArrayList<>();
+        while (srcClass != null && srcClass != Object.class) {
+            Field[] fieldsSrc = srcClass.getDeclaredFields();
+
+
+            for (int i = 0; i < fieldsSrc.length; i++) {
+                Field fieldSrc = fieldsSrc[i];
+                if (fieldSrc.isSynthetic()) {
+                    continue;
+                }
+                if ("serialVersionUID".equals(fieldSrc.getName())) {
+                    continue;
+                }
+                //public static final long com.buyao.buliao.bean.DetailPersonModel.serialVersionUID
+                String getMethodName = ReflectUtils.getGetName(fieldSrc);
+
+                String setMethodName = ReflectUtils.getSetName(fieldSrc);
+              /*  if (hasCallMethods.contains(setMethodName)) {//理论上不存在。没有字段就自然不会调用子类方法。
+
+                    Prt.w(TAG, "忽略父类,因为子类已经赋值 " + setMethodName);
+                    continue;
+                }*/
+
+                try {
+
+                    Method getMethod = srcClass.getMethod(getMethodName);
+                    Method setMethod = srcClass.getMethod(setMethodName, getMethod.getReturnType());
+                    methods.add(setMethod);
+
+
+                  /*  Object invoke = null;
+
+//                    Prt.d(TAG, "" + getMethodName + ":" + invoke + ",setMethod:" + setMethod);
+                    if (invoke != null) {
+                        setMethod.invoke(srcObject, invoke);
+                    }*/
+
+
+                } catch (NoSuchMethodException e) {
+                    e.printStackTrace();
+
+                }
+
+            }
+            srcClass = srcClass.getSuperclass();
+        }
+
+
+        return methods;
+    }
+
+
+    /*
+    如果是唯一的则返回unique字段.
+     */
+
+    public static String getUniqueCrateFieldFlag(Field field) {
+        if (!field.isAccessible()) {
+            field.setAccessible(true);
+        }
+        if (field == null) {
+            throw new RuntimeException("字段不能为空");
+        }
+        try {
+            if (field.isAnnotationPresent(Unique.class)) {
+                return " unique";
+            }
+
+
+        } catch (Exception e) {
+            mFailListener.onFail(e);
+            e.toString();
+
+            Log.w(TAG, field.getName() + "E." + e.toString());
+        }
+        return "";
+    }
+
+
+    public static String getColumnType(Field field) {
+        if (!field.isAccessible()) {
+            field.setAccessible(true);
+        }
+        if (field == null) {
+            throw new RuntimeException("字段不能为空");
+        }
+        try {
+
+
+            if (field.isAnnotationPresent(ColumnType.class)) {
+                return field.getAnnotation(ColumnType.class).value();//后面的value我想就是参数的泛型返回 注解的接口然后就可以链式输出value();
+            }
+
+        } catch (Exception e) {
+            if (mFailListener != null) {
+                mFailListener.onFail(e);
+            }
+            e.toString();
+
+            Log.w(TAG, field.getName() + "E." + e.toString());
+        }
+        return null;
+    }
+
+
+    /**
+     * 这样做的目的是解决编译报错问题
+     *
+     * @param appContext
+     */
+    public static void installLeakCanary(SuperAppContext appContext) {
+        try {
+            Class<?> aClass = Class.forName("com.squareup.leakcanary.LeakCanary");
+            Method method = aClass.getDeclaredMethod("install", Application.class);
+            method.invoke(null, appContext);
+
+//            com.squareup.leakcanary.LeakCanary.install(this);
+        } catch (Exception e) {
+
+        }
+    }
+
+    public static <T> Field getMethodFromAllField(Class<T> klass, String str) {
+        Field field = getDeclaredField(klass, str);
+        if (field == null) {
+            Field[] javaBeanAllFields = getJavaBeanAllFields(klass);
+            if (javaBeanAllFields != null) {
+                for (Field javaBeanAllField : javaBeanAllFields) {
+                    if (javaBeanAllField.getName().equals(str)) {
+                        return javaBeanAllField;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+
     public interface OnFailListener {
         void onFail(Throwable e);
     }
@@ -780,16 +1057,16 @@ public class ReflectUtils {
         ReflectUtils.mFailListener = onFailListener;
     }
 
-    //	public static<T> T  getValue(T T,Field field) throws IllegalAccessException, IllegalArgumentException{
-//		return (T) field.get(T);
+    //	public static<mDataBind> mDataBind  getValue(mDataBind mDataBind,Field field) throws IllegalAccessException, IllegalArgumentException{
+//		return (mDataBind) field.get(mDataBind);
 //	}
     {
 //		try {
 //		} catch (IllegalAccessException e) {
-//			
+//
 //			e.printStackTrace();
 //		} catch (IllegalArgumentException e) {
-//			
+//
 //			e.printStackTrace();
 //		}
     }

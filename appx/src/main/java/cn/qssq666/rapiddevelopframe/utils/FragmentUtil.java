@@ -20,6 +20,16 @@ import cn.qssq666.rapiddevelopframe.activity.FragmentContainerActivity;
  */
 public class FragmentUtil {
 
+
+    /**
+     * 在懒加载模式,如果是使用的replace直接调用则需要检查.也等于是关闭懒加载
+     */
+    public interface FragmentOnStartNeedCheckVisible<T extends Fragment> {
+        boolean onStartNeedCheckData();
+
+        T setOnStartNeedCheckData(boolean check);
+    }
+
     /**
      * 蓝天背景，没有头部
      *
@@ -37,7 +47,7 @@ public class FragmentUtil {
 //            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);//清空任务栈栈顶也就是把那个清空掉 然后跳转到付款界面. 但是这里必须把栈顶清空了
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);//清空任务栈栈顶也就是把那个清空掉 然后跳转到付款界面.
         }
-        AppUtils.skipActivity(context, intent);
+        AppUtils.jumpActivity(context, intent);
     }
 
     public static void toNewActivityFragmentPage(Context context, String className) {
@@ -61,6 +71,14 @@ public class FragmentUtil {
 
     public static void replaceFragment(FragmentActivity activity, Fragment fragment, boolean addBackStack) {
         replaceFragment(null, activity, fragment, null, CONTAINER_ID_DEFAULT, null, addBackStack, false);
+    }
+
+    public static void replaceFragment(FragmentActivity activity, Fragment fragment, int containerId, boolean addBackStack) {
+        replaceFragment(null, activity, fragment, null, containerId, null, addBackStack, false);
+    }
+
+    public static void replaceFragment(FragmentActivity activity, Fragment fragment, Bundle bundle, boolean addBackStack) {
+        replaceFragment(null, activity, fragment, bundle, CONTAINER_ID_DEFAULT, null, addBackStack, false);
     }
 
     public static void replaceFragment(FragmentActivity activity, Class<? extends Fragment> fragmentClass, boolean addBackStack, boolean needAnim) {
@@ -103,6 +121,7 @@ public class FragmentUtil {
     public static void replaceChildFragment(Fragment currentFragment, FragmentActivity activity, Fragment fragment, Bundle bundle, boolean addBackStack) {
         replaceFragment(currentFragment, activity, fragment, bundle, CONTAINER_ID_DEFAULT, null, addBackStack, false);
     }
+
 
     public static void replaceChildFragment(Fragment currentFragment, FragmentActivity activity, Fragment fragment, boolean addBackStack) {
         replaceFragment(currentFragment, activity, fragment, null, CONTAINER_ID_DEFAULT, null, addBackStack, false);
@@ -262,34 +281,40 @@ public class FragmentUtil {
     }
 
     /**
-     * @param currentFragment 没填写说明不是自容器
-     * @param activity        需要 必须填写
-     * @param fragment        跳转目标
-     * @param bundle          传递的参数
-     * @param containerId     容器  @see FragmentUtil.CONTAINER_ID_DEFAULT
+     * @param parentFragment 没填写说明不是自容器
+     * @param activity       需要 必须填写
+     * @param fragment       跳转目标
+     * @param bundle         传递的参数
+     * @param containerId    容器  @see FragmentUtil.CONTAINER_ID_DEFAULT
      * @param tag
      * @param backStackName
-     * @param addToBackStack  是否添加到回退栈
+     * @param addToBackStack 是否添加到回退栈
      * @param needAnim
      * @param <T>
      */
-    public static <T> void replaceFragment(final Fragment currentFragment, final FragmentActivity activity, final Fragment fragment, final Bundle bundle, final int containerId, final String tag, final String backStackName, final boolean addToBackStack, final boolean needAnim) {
-/*        AppContext.getHandler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                if (activity == null) {
-                    Log.w(TAG, "Activity is Null");
-                    return;
-                }*/
+    public static <T> void replaceFragment(final Fragment parentFragment, final FragmentActivity activity, final Fragment fragment, final Bundle bundle,
+                                           final int containerId, final String tag, final String backStackName,
+                                           final boolean addToBackStack, final boolean needAnim) {
         Bundle tempBundle = bundle;
         if (tempBundle != null) {
             fragment.setArguments(tempBundle);
         }
         FragmentManager supportFragmentManager;
-        if (currentFragment != null) {
-            supportFragmentManager = currentFragment.getChildFragmentManager();
+        if (parentFragment != null) {
+            if (!parentFragment.isAdded()) {
+                Log.e(TAG, "fragment not added");
+                return;
+            }
+            if (parentFragment.getActivity() == null) {
+                Log.e(TAG, "  java.lang.IllegalStateException: Fragment has not been attached yet.");//继续调用也没用 还是会崩溃
+                return;
+            }
+            supportFragmentManager = parentFragment.getChildFragmentManager();
         } else {
             supportFragmentManager = activity.getSupportFragmentManager();
+            if (fragment instanceof FragmentOnStartNeedCheckVisible) {
+                ((FragmentOnStartNeedCheckVisible) fragment).setOnStartNeedCheckData(true);
+            }
         }
         if (fragment != null && supportFragmentManager != null) {
             FragmentTransaction transaction = supportFragmentManager.beginTransaction();
@@ -299,12 +324,13 @@ public class FragmentUtil {
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
                 if (activity == null || activity.isDestroyed()) {
+                    Log.e(TAG, "activity is destory! " + Log.getStackTraceString(new Throwable()));
                     return;
                 }
             }
 //                        transaction.setCustomAnimations(R.animator.fragment_enter_left, R.animator.fragment_exit_left);
-            Log.i(TAG, "containerId:" + (containerId == CONTAINER_ID_DEFAULT ? R.id.fragment_space : containerId) + "");
-            transaction.replace(containerId == CONTAINER_ID_DEFAULT ? R.id.fragment_space : containerId, fragment, tag);
+//            Log.i(TAG, "containerId:" + (containerId == CONTAINER_ID_DEFAULT ? R.id.fragment_space : containerId) + "");
+            transaction.replace(containerId == CONTAINER_ID_DEFAULT ? R.id.fragment_space : containerId, fragment, tag);//24.0.1貌似有bug
             if (addToBackStack) {
                 transaction.addToBackStack(backStackName);
             }
@@ -317,6 +343,8 @@ public class FragmentUtil {
                           at android.support.v4.app.BackStackRecord.commitInternal(BackStackRecord.java:634)
                           at android.support.v4.app.BackStackRecord.commit(BackStackRecord.java:613)
                          */
+        } else {
+            Log.e(TAG, "fragmentManager is Empty! " + Log.getStackTraceString(new Throwable()));
         }
 //            }
 //        }, 50);

@@ -27,8 +27,14 @@ public class EmptyBaseActivity extends AppCompatActivity {
     public EmptyBaseActivity getFragmentActivity() {
         return this;
     }
+
+    public EmptyBaseActivity getActivity() {
+        return this;
+    }
+
     /**
      * 高粱 zhuangtailan zidi font black
+     *
      * @return
      */
     protected boolean needHieghtStatusBar() {
@@ -48,6 +54,10 @@ public class EmptyBaseActivity extends AppCompatActivity {
 
     }
 
+    protected boolean enableCancelVolley() {
+        return true;
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -55,7 +65,10 @@ public class EmptyBaseActivity extends AppCompatActivity {
         InputMethodFix.fixInputMethodManagerLeakxxxx(this);
 //        InputMethodFix.fixInputMethodManagerLeak(this);
 //        NetQuestTask.destory(this);
-        NetQuestTask.cancelAllDefaultTagRequest(this);
-        NetQuestTask.cancelRequest(this.getClass().getName());
+        if (enableCancelVolley()) {
+            NetQuestTask.cancelAllDefaultTagRequest(this);
+            NetQuestTask.cancelRequest(this.getClass().getName());
+
+        }
     }
 }

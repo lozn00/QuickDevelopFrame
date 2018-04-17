@@ -13,6 +13,11 @@ import java.util.Locale;
  */
 public class DateUtils {
 
+
+    public static String get4y2d2h2mTime(long time) {
+        return get4y2d2h2mTime(new Date(time));
+    }
+
     /**
      * 毫秒
      */

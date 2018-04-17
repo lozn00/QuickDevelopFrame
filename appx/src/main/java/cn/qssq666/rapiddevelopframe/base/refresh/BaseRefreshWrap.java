@@ -46,20 +46,21 @@
 
 package cn.qssq666.rapiddevelopframe.base.refresh;
 
-import android.content.Context;
 import android.support.v7.widget.RecyclerView;
-import android.view.animation.AnimationUtils;
-import android.view.animation.LayoutAnimationController;
 
 import com.scwang.smartrefresh.layout.SmartRefreshLayout;
+import com.scwang.smartrefresh.layout.api.RefreshFooter;
+import com.scwang.smartrefresh.layout.api.RefreshHeader;
 import com.scwang.smartrefresh.layout.api.RefreshLayout;
-import com.scwang.smartrefresh.layout.listener.OnLoadmoreListener;
+import com.scwang.smartrefresh.layout.constant.RefreshState;
+import com.scwang.smartrefresh.layout.listener.OnMultiPurposeListener;
 import com.scwang.smartrefresh.layout.listener.OnRefreshListener;
 
 import cn.qssq666.rapiddevelopframe.R;
 import cn.qssq666.rapiddevelopframe.global.SuperAppContext;
 import cn.qssq666.rapiddevelopframe.interfaces.AdapterI;
 import cn.qssq666.rapiddevelopframe.utils.AppThemeUtilsX;
+import cn.qssq666.rapiddevelopframe.utils.Prt;
 import cn.qssq666.rapiddevelopframe.utils.ToastUtils;
 
 
@@ -69,6 +70,8 @@ import cn.qssq666.rapiddevelopframe.utils.ToastUtils;
 
 public abstract class BaseRefreshWrap<ADAPTER extends RecyclerView.Adapter> implements RereshLogicI<ADAPTER> {
 
+
+    public static final String TAG = "BaseRefreshWrap";
 
     public ADAPTER getAdapter() {
         return mAdapter;
@@ -126,6 +129,7 @@ public abstract class BaseRefreshWrap<ADAPTER extends RecyclerView.Adapter> impl
     abstract public String getUrl(int page);
 
     public void queryDataRereshAndSetProgressUi() {
+
         setPage(0);
         getSwipyRefreshLayout().autoRefresh(20);
 //        queryData();
@@ -171,35 +175,115 @@ public abstract class BaseRefreshWrap<ADAPTER extends RecyclerView.Adapter> impl
         AppThemeUtilsX.setSwiperRefreshLayoutStyle(getSwipyRefreshLayout());
 
         if (enableRefresh()) {
-            getSwipyRefreshLayout().setOnRefreshListener(new OnRefreshListener() {
+        /*    getSwipyRefreshLayout().setOnRefreshListener(new OnRefreshListener() {
                 @Override
                 public void onRefresh(RefreshLayout refreshLayout) {
                     doOnTopRefreshLogic();
                 }
-            });
+
+            });*/
+
 
             getSwipyRefreshLayout().setEnableRefresh(true);
 
         } else {
+
             getSwipyRefreshLayout().setEnableRefresh(false);
         }
 
-
         if (enableLoadMore()) {
-            getSwipyRefreshLayout().setOnLoadmoreListener(new OnLoadmoreListener() {
+            getSwipyRefreshLayout().setEnableLoadMore(true);
+        } else {
+            getSwipyRefreshLayout().setEnableLoadMore(false);
+
+        }
+
+        getSwipyRefreshLayout().setOnMultiPurposeListener(new OnMultiPurposeListener() {
+            @Override
+            public void onHeaderPulling(RefreshHeader header, float percent, int offset, int headerHeight, int extendHeight) {
+                Prt.w(TAG, "onHeaderPulling");
+            }
+
+            @Override
+            public void onHeaderReleased(RefreshHeader header, int headerHeight, int extendHeight) {
+                Prt.w(TAG, "onHeaderReleased");
+            }
+
+            @Override
+            public void onHeaderReleasing(RefreshHeader header, float percent, int offset, int headerHeight, int extendHeight) {
+                Prt.w(TAG, "onHeaderReleasing");
+            }
+
+            @Override
+            public void onHeaderStartAnimator(RefreshHeader header, int headerHeight, int extendHeight) {
+                Prt.w(TAG, "onHeaderStartAnimator");
+            }
+
+            @Override
+            public void onHeaderFinish(RefreshHeader header, boolean success) {
+                Prt.w(TAG, "onHeaderFinish");
+
+                BaseRefreshWrap.this.onHeaderFinish();
+            }
+
+            @Override
+            public void onFooterPulling(RefreshFooter footer, float percent, int offset, int footerHeight, int extendHeight) {
+                Prt.w(TAG, "onFooterPulling");
+            }
+
+            @Override
+            public void onFooterReleased(RefreshFooter footer, int footerHeight, int extendHeight) {
+                Prt.w(TAG, "onFooterReleased");
+            }
+
+            @Override
+            public void onFooterReleasing(RefreshFooter footer, float percent, int offset, int footerHeight, int extendHeight) {
+                Prt.w(TAG, "onFooterReleasing");
+            }
+
+            @Override
+            public void onFooterStartAnimator(RefreshFooter footer, int footerHeight, int extendHeight) {
+                Prt.w(TAG, "onFooterStartAnimator");
+            }
+
+            @Override
+            public void onFooterFinish(RefreshFooter footer, boolean success) {
+                Prt.w(TAG, "onFooterFinish");
+            }
+
+            @Override
+            public void onLoadMore(RefreshLayout refreshLayout) {
+                doOnBottomRefreshLogic();
+                Prt.w(TAG, "onLoadMore");
+            }
+
+            @Override
+            public void onRefresh(RefreshLayout refreshLayout) {
+                doOnTopRefreshLogic();
+                Prt.w(TAG, "onRefresh");
+            }
+
+            @Override
+            public void onStateChanged(RefreshLayout refreshLayout, RefreshState oldState, RefreshState newState) {
+                Prt.w(TAG, "onStateChanged");
+            }
+        });
+
+
+/*        if (enableLoadMore()) {
+            getSwipyRefreshLayout().setOnLoadMoreListener(new OnLoadMoreListener() {
                 @Override
-                public void onLoadmore(final RefreshLayout refreshlayout) {
+                public void onLoadMore(RefreshLayout refreshLayout) {
                     doOnBottomRefreshLogic();
                 }
             });
 
 
-            getSwipyRefreshLayout().setEnableLoadmore(true);
-//            getSwipyRefreshLayout().setEnableLoadmoreWhenContentNotFull(false);//没有数据的时候不允许加载共读
+//            getSwipyRefreshLayout().setEnableLoadmore(true);
         } else {
-            getSwipyRefreshLayout().setEnableLoadmore(false);
-        }
-        getSwipyRefreshLayout().setEnableAutoLoadmore(true);//到底部自动加载更多
+//            getSwipyRefreshLayout().setEnableLoadmore(false);
+        }*/
+//        getSwipyRefreshLayout().setEnableAutoLoadmore(true);//到底部自动加载更多
         onPreInitFinish();
         onInitFinish();
         if (autoLoad()) {
@@ -209,14 +293,8 @@ public abstract class BaseRefreshWrap<ADAPTER extends RecyclerView.Adapter> impl
 
     }
 
-    public static  void runLayoutAnimation(final RecyclerView recyclerView) {
-        final Context context = recyclerView.getContext();
-        final LayoutAnimationController controller =
-                AnimationUtils.loadLayoutAnimation(context, R.anim.layout_animation_slide_right);
-//                AnimationUtils.loadLayoutAnimation(context, R.anim.layout_animation_fall_down);
-        recyclerView.setLayoutAnimation(controller);
-        recyclerView.getAdapter().notifyDataSetChanged();
-        recyclerView.scheduleLayoutAnimation();
+    protected void onHeaderFinish() {
+
     }
 
 

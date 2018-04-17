@@ -10,12 +10,33 @@
         <item name="android:windowActionBar">false</item>
         <item name="android:windowFullscreen">true</item>
     </style>
-
+    <style name="dialog_transparent_gray_trans" parent="dialog_transparent">
+        <item name="android:backgroundDimEnabled">true</item>
+    </style>
     <style name="FullScreenTheme" parent="AppThemeX">
         <item name="android:windowFullscreen">true</item>
     </style>
 
+    <style name="scrollTextview">
 
+        <item name="android:ellipsize">marquee</item>
+        <item name="android:marqueeRepeatLimit">marquee_forever</item>
+        <item name="android:scrollHorizontally">true</item>
+        <item name="android:singleLine">true</item>
+    </style>
+    <style name="h_line_8">
+        <item name="android:layout_width">fill_parent</item>
+        <item name="android:layout_height">8dp</item>
+        <item name="android:background">#F2F2F2</item>
+        <!--<item name="android:background">@color/colorThemeLine</item>-->
+        <!--<item name="android:background">?attr/lineColor</item>-->
+    </style>
+
+    <style name="h_line">
+        <item name="android:layout_width">fill_parent</item>
+        <item name="android:layout_height">1dp</item>
+        <item name="android:background">#efefef</item>
+    </style>
 
     <!-- Base application theme. -->
     <style name="AppThemeX" parent="Theme.AppCompat.Light.NoActionBar">

@@ -5,6 +5,7 @@ import android.app.Dialog;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.support.graphics.drawable.VectorDrawableCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -105,7 +106,10 @@ public class AppThemeUtilsX {
     public static RecyclerView.LayoutManager getVideoLiveLayoutManager() {
         return new GridLayoutManager(SuperAppContext.getInstance(), 2, LinearLayoutManager.VERTICAL, false);
     }
-
+    public static void setSwiperRefreshLayoutStyle(android.support.v4.widget.SwipeRefreshLayout swipeRefreshLayout) {
+        swipeRefreshLayout.setProgressBackgroundColorSchemeColor(SuperAppContext.getInstance().getResources().getColor(R.color.colorWhite));
+        swipeRefreshLayout.setColorSchemeColors(ContextCompat.getColor(SuperAppContext.getInstance(), R.color.colorThemeColor));
+    }
 
     public static void setSwiperRefreshLayoutStyle(SmartRefreshLayout refreshLayout) {
         refreshLayout.setEnableHeaderTranslationContent(false);//内容不偏移

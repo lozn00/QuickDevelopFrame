@@ -3,13 +3,18 @@ package cn.qssq666.rapiddevelopframe.base.refresh;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.View;
 
 import com.scwang.smartrefresh.layout.SmartRefreshLayout;
 
 import java.util.List;
 
+import cn.qssq666.rapiddevelopframe.BuildConfig;
 import cn.qssq666.rapiddevelopframe.base.fragment.BaseCacheViewFragment;
+import cn.qssq666.rapiddevelopframe.base.fragment.BaseLazyLoadFragment;
+import cn.qssq666.rapiddevelopframe.base.fragment.BaseLazyLoadFragmentFromLayout;
+import cn.qssq666.rapiddevelopframe.base.refresh.lazy.BaseJSONLazyFragmentN;
 import cn.qssq666.rapiddevelopframe.interfaces.AdapterI;
 
 /**
@@ -18,7 +23,7 @@ import cn.qssq666.rapiddevelopframe.interfaces.AdapterI;
  * 逻辑好乱 一部分代码是控制wrap ，一部分是提供给包裹。
  */
 
-public abstract class BaseJSONRefreshFragmentN<ADAPTER extends RecyclerView.Adapter> extends BaseCacheViewFragment implements BaseJSONRefreshLogicI<ADAPTER> {
+public abstract class BaseJSONRefreshFragmentN<ADAPTER extends RecyclerView.Adapter> extends BaseLazyLoadFragment implements BaseJSONRefreshLogicI<ADAPTER> {
 
     public JSONRefreshRefreshWrap<ADAPTER> getRefreshWrap() {
         return refreshWrap;
@@ -41,10 +46,28 @@ public abstract class BaseJSONRefreshFragmentN<ADAPTER extends RecyclerView.Adap
             }
 
             @Override
+            public void queryData() {
+                super.queryData();
+                BaseJSONRefreshFragmentN.this.onStartQuery();
+            }
+
+            @Override
+            protected void onParseError(Exception error) {
+                BaseJSONRefreshFragmentN.this.onParseError(error);
+
+            }
+
+            @Override
+            protected void onHeaderFinish() {
+                BaseJSONRefreshFragmentN.this.onHeaderFinish();
+            }
+
+            @Override
             public RecyclerView getRecyclerView() {
 
                 return BaseJSONRefreshFragmentN.this.getRecyclerView();
             }
+
 
             @Override
             public SmartRefreshLayout getSwipyRefreshLayout() {
@@ -86,8 +109,33 @@ public abstract class BaseJSONRefreshFragmentN<ADAPTER extends RecyclerView.Adap
                 return BaseJSONRefreshFragmentN.this.enableLoadMore();
 
             }
+
+            @Override
+            protected boolean needEmptyView() {
+                return BaseJSONRefreshFragmentN.this.needEmptyView();
+            }
         };
+        if(BuildConfig.DEBUG){
+        Log.w(TAG,"REFRESH-FRAGMENT-INIT");
+        }
         refreshWrap.init();
+    }
+
+    /**
+     * 动画完毕
+     */
+    protected void onHeaderFinish() {
+
+    }
+
+    protected void onStartQuery() {
+    }
+
+    protected void onParseError(Exception error) {
+    }
+
+    protected boolean needEmptyView() {
+        return true;
     }
 
 
